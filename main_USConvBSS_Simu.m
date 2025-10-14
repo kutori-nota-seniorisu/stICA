@@ -126,7 +126,7 @@ tic;
                 while true
                     CoV_old = CoV_new;
                     s = w_new' * Z;
-                    [source_new, PT, CoV_new, ~] = blindDeconvPeakFinding(s, 20, 3.5, 20*2, 2);
+                    [source_new, PT, CoV_new, ~] = blindDeconvPeakFinding(s, 20, 4, 20*2, 2);
 
                     % figure;
                     % subplot(2,1,1); plot(s); title('s');
@@ -135,7 +135,7 @@ tic;
                     % drawnow;
 
                     w_new = mean(Z(:, PT), 2);
-                    if CoV_new > CoV_old
+                    if CoV_new >= CoV_old
                         break;
                     end
                 end
