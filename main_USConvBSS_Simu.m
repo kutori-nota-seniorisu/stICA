@@ -6,7 +6,7 @@ exFactor = 10;
 % 迭代容差
 Tolx = 1e-4;
 % 潜在成分个数
-numCompo = 15;
+numCompo = 10;
 
 %% 1.三维数组转二维数组
 % load('Data/simulation/datasets1/TVIdata_compo12_NC.mat');

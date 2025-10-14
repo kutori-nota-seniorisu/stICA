@@ -13,10 +13,13 @@ for r = 1:400/8-1
 
         % disp(['row=' num2str(r) ',col=' num2str(c)]);
         tmpPulses = DecompoResults.decompo_pulses{r, c};
-        tmpsources = DecompoResults.source{r, c};
+        tmpsources = DecompoResults.sources{r, c};
         tmpCoV = DecompoResults.CoV{r, c};
         % rho = corr(sources);
         for mu = 1:10
+            if isempty(tmpPulses{mu})
+                continue;
+            end
             % 放电时间间隔的MAD
             % pulseInt = diff(decompo_pulses{mu}/2);
             % MAD = mean(abs(pulseInt - mean(pulseInt)));

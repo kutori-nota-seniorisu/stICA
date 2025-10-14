@@ -6,7 +6,7 @@ exFactor = 10;
 % 迭代容差
 Tolx = 1e-4;
 % 潜在成分个数
-numCompo = 15;
+numCompo = 10;
 
 % 开启并行池
 if isempty(gcp('nocreate'))
@@ -14,7 +14,7 @@ if isempty(gcp('nocreate'))
 end
 
 % 1.三维数组转二维数组
-for setset = 1%:10
+for setset = 1:10
     tic;
     datasets_num = num2str(setset);
     % 导入空间源成分
