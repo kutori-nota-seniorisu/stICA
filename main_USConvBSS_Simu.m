@@ -10,8 +10,8 @@ numCompo = 15;
 
 %% 1.三维数组转二维数组
 % load('Data/simulation/datasets1/TVIdata_compo12_NC.mat');
-for setset = 1:10
-
+for setset = 1%:10
+tic;
     datasets_num = num2str(setset);
     % 导入空间源成分
     folderPath = ['F:/EEEMG/stICA/Data/simulation/figure/image_mat' datasets_num '/'];
@@ -156,6 +156,8 @@ for setset = 1:10
             % close all;
         end
     end
-    save(['Data/simulation/datasets' datasets_num '/USCBSS_compo15.mat'], 'DecompoResults')
+    save(['Data/simulation/datasets' datasets_num '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults');
     % save(['result' datasets_num '.mat'], 'DecompoResults');
+        toc;
+    disp(['程序用时：' num2str(toc)])
 end

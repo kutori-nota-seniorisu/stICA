@@ -8,9 +8,14 @@ Tolx = 1e-4;
 % 潜在成分个数
 numCompo = 15;
 
-% 1.三维数组转二维数组
-for setset = 1:10
+% 开启并行池
+if isempty(gcp('nocreate'))
+    parpool;
+end
 
+% 1.三维数组转二维数组
+for setset = 1%:10
+    tic;
     datasets_num = num2str(setset);
     % 导入空间源成分
     folderPath = ['F:/EEEMG/stICA/Data/simulation/figure/image_mat' datasets_num '/'];
@@ -65,11 +70,6 @@ for setset = 1:10
     tmpCoV = cell(numRows, numCols);
     tmpWFirst = cell(numRows, numCols);
     tmpSourceFirst = cell(numRows, numCols);
-
-    % 开启并行池
-    if isempty(gcp('nocreate'))
-        parpool;
-    end
 
     for r = 1:numRows
         parfor c = 1:numCols
@@ -190,6 +190,8 @@ for setset = 1:10
     DecompoResults.wFirst = tmpWFirst;
     DecompoResults.sourceFirst = tmpSourceFirst;
 
-    save(['Data/simulation/datasets' datasets_num '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults')
+    save(['Data/simulation/datasets' datasets_num '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults');
     % save(['result' datasets_num '.mat'], 'DecompoResults');
+    toc;
+    disp(['程序用时：' num2str(toc)])
 end
