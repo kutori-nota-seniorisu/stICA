@@ -14,7 +14,7 @@ for setset = 1%:10
 tic;
     datasets_num = num2str(setset);
     % 导入空间源成分
-    folderPath = ['F:/EEEMG/stICA/Data/simulation/figure/image_mat' datasets_num '/'];
+    folderPath = ['./Data/simulation/figure/image_mat' datasets_num '/'];
     fileFormat = '*.mat';
     % 使用dir函数获取文件夹中符合文件格式的文件信息
     fileList = dir(fullfile(folderPath, fileFormat));
@@ -156,7 +156,7 @@ tic;
             % close all;
         end
     end
-    save(['Data/simulation/datasets' datasets_num '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults');
+    save(['./Data/simulation/datasets' datasets_num '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults');
     % save(['result' datasets_num '.mat'], 'DecompoResults');
         toc;
     disp(['程序用时：' num2str(toc)])
