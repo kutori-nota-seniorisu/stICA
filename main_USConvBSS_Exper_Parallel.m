@@ -20,7 +20,7 @@ for level = 1:2
     for trial = 1:2
         for pp = 1:2
             % 导入TVI数据
-            tviFile = ['./Data/experiment/24-06-21/UUS_iEMG/TVIData_S1_M1_level' num2str(level) '_trial' num2str(trial) '_Dual_24-06-21_' num2str(pp) '.mat'];
+            tviFile = ['./Data/experiment/24-06-21/UUS-iEMG/TVIData_S1_M1_level' num2str(level) '_trial' num2str(trial) '_Dual_24-06-21_' num2str(pp) '.mat'];
             load(tviFile);
             TVIData = cat(3, zeros(395, 128, 20), TVIData);
             % filter the TVI data
