@@ -69,7 +69,7 @@ for setset = 1:10
     tmpDecompoPulses = cell(numRows, numCols);
     tmpCoV = cell(numRows, numCols);
     tmpWFirst = cell(numRows, numCols);
-    tmpSourceFirst = cell(numRows, numCols);
+    tmpSourcesFirst = cell(numRows, numCols);
 
     for r = 1:numRows
         parfor c = 1:numCols
@@ -177,7 +177,7 @@ for setset = 1:10
             tmpDecompoPulses{r, c} = decompo_pulses;
             tmpCoV{r, c} = CoV;
             tmpWFirst{r, c} = wFirst;
-            tmpSourceFirst{r, c} = sourcesFirst;
+            tmpSourcesFirst{r, c} = sourcesFirst;
 
             % close all;
         end
@@ -188,7 +188,7 @@ for setset = 1:10
     DecompoResults.decompo_pulses = tmpDecompoPulses;
     DecompoResults.CoV = tmpCoV;
     DecompoResults.wFirst = tmpWFirst;
-    DecompoResults.sourceFirst = tmpSourceFirst;
+    DecompoResults.sourceFirst = tmpSourcesFirst;
 
     save(['./Data/simulation/datasets' datasets_num '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults');
     % save(['result' datasets_num '.mat'], 'DecompoResults');

@@ -43,15 +43,43 @@ xlabel('time');
 ylabel('velocity');
 title('twitch curve');
 
-%% 比较不同拟合参数的情况。设置pts可以使拟合的pdf更加精细。
-[f1,x1] = ksdensity(Xt(:,1));
-pts = -5:0.001:5;
-[f2,x2] = ksdensity(Xt(:,1),pts);
-figure;
-plot(x1,f1);
-hold on;
-plot(x2,f2);
-legend('1','2');
+%% 初步筛选
+% 保留的脉冲串
+decompoPulseAll = {};
+% 保留的估计源
+decompoSourceAll = [];
+% 保留的一阶段估计源
+decompoSourceFirstAll = [];
+% 保留的CoV
+decompoCoVAll = [];
+for r = 1:400/8-1
+    for c = 1:128/8-1
+
+        % disp(['row=' num2str(r) ',col=' num2str(c)]);
+        tmpPulses = DecompoResults.decompo_pulses{r, c};
+        tmpSourcesFirst = DecompoResults.sourceFirst{r, c};
+        tmpSources = DecompoResults.sources{r, c};
+        % tmpCoV = DecompoResults.CoV{r, c};
+        % rho = corr(sources);
+        for mu = 1:10
+            if isempty(tmpPulses{mu})
+                continue;
+            end
+            decompoPulseAll{end+1} = tmpPulses{mu};
+            decompoSourceAll(:, end+1) = tmpSources(:, mu);
+            decompoSourceFirstAll(:, end+1) = tmpSourcesFirst(:, mu);
+            % decompoCoVAll(end+1) = tmpCoV(mu);
+        end
+    end
+end
+
+for i = 1:size(decompoSourceAll, 2)
+    for j = i:size(decompoSourceAll, 2)
+        [corrVals, ~] = xcorr(decompoSourceAll(:, i), decompoSourceAll(:, j), 'coeff');
+        [~, idx] = max(abs(corrVals));
+        ccc(i, j) = corrVals(idx);
+    end
+end
 
 %%
 matchresult_time_raw = [];

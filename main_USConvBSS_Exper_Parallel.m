@@ -195,7 +195,7 @@ for level = 1:2
             DecompoResults.wFirst = tmpWFirst;
             DecompoResults.sourceFirst = tmpSourceFirst;
 
-            save(['./Data/experiment/24-06-21/UUS_iEMG/S1M1L' num2str(level) 'T' num2str(trial) 'P' num2str(pp) '_USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults')
+            save(['./Data/experiment/24-06-21/UUS-iEMG/S1M1L' num2str(level) 'T' num2str(trial) 'P' num2str(pp) '_USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults')
         end
     end
 end

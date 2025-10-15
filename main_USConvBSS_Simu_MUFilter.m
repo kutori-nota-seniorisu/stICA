@@ -1,11 +1,13 @@
 %% 仿真数据。Pulse筛选
 clear; clc; close all;
-load('result10.mat');
+load('./Data/simulation/datasets1/USCBSS_compo10.mat');
 %% 初步筛选
 % 保留的脉冲串
 decompoPulseAll = {};
 % 保留的估计源
 decompoSourceAll = [];
+% 保留的一阶段估计源
+decompoSourceFirstAll = [];
 % 保留的CoV
 decompoCoVAll = [];
 for r = 1:400/8-1
@@ -13,7 +15,8 @@ for r = 1:400/8-1
 
         % disp(['row=' num2str(r) ',col=' num2str(c)]);
         tmpPulses = DecompoResults.decompo_pulses{r, c};
-        tmpsources = DecompoResults.sources{r, c};
+        tmpSourcesFirst = DecompoResults.sourceFirst{r, c};
+        tmpSources = DecompoResults.sources{r, c};
         tmpCoV = DecompoResults.CoV{r, c};
         % rho = corr(sources);
         for mu = 1:10
@@ -30,12 +33,13 @@ for r = 1:400/8-1
 
             if isempty(decompoPulseAll)
                 decompoPulseAll{end+1} = tmpPulses{mu};
-                decompoSourceAll(:, end+1) = tmpsources(:, mu);
+                decompoSourceAll(:, end+1) = tmpSources(:, mu);
+                decompoSourceFirstAll(:, end+1) = tmpSourcesFirst(:, mu);
                 decompoCoVAll(end+1) = tmpCoV(mu);
             end
 
             for ii = 1:size(decompoSourceAll, 2)
-                [tmp, ~] = xcorr(decompoSourceAll(:, ii), tmpsources(:, mu), 'coeff');
+                [tmp, ~] = xcorr(decompoSourceAll(:, ii), tmpSources(:, mu), 'coeff');
                 corrVals(ii) = max(abs(tmp));
             end
 
@@ -46,7 +50,8 @@ for r = 1:400/8-1
                 if decompoCoVAll(idx) > tmpCoV(mu)
                     disp(['更新MU #' num2str(idx)])
                     decompoPulseAll{idx} = tmpPulses{mu};
-                    decompoSourceAll(:, idx) = tmpsources(:, mu);
+                    decompoSourceAll(:, idx) = tmpSources(:, mu);
+                    decompoSourceFirstAll(:, idx) = tmpSourcesFirst(:, mu);
                     decompoCoVAll(idx) = tmpCoV(mu);
                     % else
                     %     disp('未更新');
@@ -54,7 +59,8 @@ for r = 1:400/8-1
                 continue;
             else
                 decompoPulseAll{end+1} = tmpPulses{mu};
-                decompoSourceAll(:, end+1) = tmpsources(:, mu);
+                decompoSourceAll(:, end+1) = tmpSources(:, mu);
+                decompoSourceFirstAll(:, end+1) = tmpSourcesFirst(:, mu);
                 decompoCoVAll(end+1) = tmpCoV(mu);
                 disp(['MU=' num2str(mu) '保留']);
             end
@@ -88,6 +94,7 @@ end
 
 decompoPulseAll(delInd) = [];
 decompoSourceAll(:, delInd) = [];
+decompoSourceFirstAll(:, delInd) = [];
 decompoCoVAll(delInd) = [];
 
 %% 二次筛选
@@ -128,8 +135,11 @@ for muii = 1:size(decompoSourceAll, 2)
     figure;
     subplot(3,1,1);
     scatter(decompoPulseAll{muii}, ones(length(decompoPulseAll{muii})), 1000, "black", '|');
+    xlim([0, 4000])
     title('spike train')
     subplot(3,1,2);
+    plot(decompoSourceFirstAll(:, muii));
+    hold on
     plot(decompoSourceAll(:, muii));
     title('estimated source')
     subplot(3,1,3);
