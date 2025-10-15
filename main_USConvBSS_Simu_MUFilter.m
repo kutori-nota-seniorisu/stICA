@@ -1,6 +1,6 @@
 %% 仿真数据。Pulse筛选
 clear; clc; close all;
-load('./Data/simulation/datasets1/USCBSS_compo10.mat');
+load('./Data/simulation/datasets10/USCBSS_compo10.mat');
 %% 初步筛选
 % 保留的脉冲串
 decompoPulseAll = {};

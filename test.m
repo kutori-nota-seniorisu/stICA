@@ -73,7 +73,7 @@ for r = 1:400/8-1
     end
 end
 
-for i = 1:size(decompoSourceAll, 2)
+for i = 1%:size(decompoSourceAll, 2)
     for j = i:size(decompoSourceAll, 2)
         [corrVals, ~] = xcorr(decompoSourceAll(:, i), decompoSourceAll(:, j), 'coeff');
         [~, idx] = max(abs(corrVals));

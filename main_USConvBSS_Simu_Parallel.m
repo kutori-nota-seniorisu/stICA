@@ -190,7 +190,7 @@ for setset = 1:10
     DecompoResults.wFirst = tmpWFirst;
     DecompoResults.sourceFirst = tmpSourcesFirst;
 
-    save(['./Data/simulation/datasets' datasets_num '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults');
+    save(['./Data/simulation/datasets' datasets_num '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
     % save(['result' datasets_num '.mat'], 'DecompoResults');
     toc;
     disp(['程序用时：' num2str(toc)])

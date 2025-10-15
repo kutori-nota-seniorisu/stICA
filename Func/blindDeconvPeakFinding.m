@@ -66,8 +66,8 @@ end
 
 % 提取放电时刻
 source = w_new' * Z;
-w_new = w_new * (1 - 2 * (abs(max(source)) <= abs(min(source))));
-source = source * (1 - 2 * (abs(max(source)) <= abs(min(source))));
+% w_new = w_new * (1 - 2 * (abs(max(source)) <= abs(min(source))));
+% source = source * (1 - 2 * (abs(max(source)) <= abs(min(source))));
 MAD = mean(abs(source - mean(source)));
 [~, PT] = findpeaks(source, 'MinPeakHeight', nMAD*MAD, 'MinPeakDistance', MPD);
 if isempty(PT)
