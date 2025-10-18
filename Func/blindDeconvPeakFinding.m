@@ -72,7 +72,7 @@ MAD = mean(abs(source - mean(source)));
 [~, PT] = findpeaks(source, 'MinPeakHeight', nMAD*MAD, 'MinPeakDistance', MPD);
 if isempty(PT)
     CoV = Inf;
-    save('wrong.mat', 'source', 'w_new');
+    % save('wrong.mat', 'source', 'w_new');
     return;
 end
 % 计算变异系数

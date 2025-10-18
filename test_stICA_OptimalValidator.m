@@ -1,4 +1,5 @@
-%% 检测最优结果周围是否有更优结果
+% 适用于stICA迭代结果的优化结果测试
+% 检测最优结果周围是否有更优结果
 addpath('F:/EEEMG/stICA/Func');
 params.NMFt = 0;
 pts = -3 : 0.005 : 3;

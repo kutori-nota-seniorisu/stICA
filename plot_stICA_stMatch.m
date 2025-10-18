@@ -1,6 +1,27 @@
-% 对时间成分与空间成分进行匹配，并保留同时在时域与空域上匹配的结果
+% 适用于stICA的时空匹配程序。
+% 对时间成分与空间成分进行匹配，保留同时在时域与空域上匹配的结果，并绘制结果。
+
 %% 时间成分匹配
+datasets_num = '1';
+load(['Data/simulation/datasets' datasets_num '/UV_compo12_NC_NMFm0.9.mat']);
 load(['Data/simulation/MU_time_response/TimeCompoDatasets' datasets_num '/ipulses.mat']);
+
+% 时间成分滤波
+fsampu = 2000;
+[B,A] = butter(4,[5,25]/fsampu*2);
+T_filter = filtfilt(B,A,T);
+
+% z-score标准化
+T_mean = mean(T_filter);
+T_std = std(T_filter);
+T_norm = (T_filter-T_mean)./T_std;
+
+% 提取脉冲串
+decompo_pulses = {};
+for i = 1:size(T_norm,2)
+    [~, locs] = findpeaks(-T_norm(:,i),'MinPeakDistance',50,'MinPeakHeight',0.5);
+    decompo_pulses{i} = locs';
+end
 
 matchresult_time_raw = [];
 % 计算RoA
@@ -8,7 +29,7 @@ for i = 1:length(decompo_pulses)
     for j = 1:length(ipulses)
         [Array1, Array2] = meshgrid(decompo_pulses{i}, ipulses{j});
         diff_values = Array1 - Array2;
-        valid_elements = diff_values <= (exFactor+10)*2 & diff_values >= 0;
+        valid_elements = diff_values <= 22.5*2 & diff_values >= 2.5*2;
         count = sum(valid_elements(:));
         r = count/(length(decompo_pulses{i})+length(ipulses{j})-count);
         if r > 1
@@ -36,6 +57,7 @@ for mu = 1:length(ipulses)
         matchresult_time(tmpInd(deleteInd), :) = [];
     end
 end
+
 matchresult_time_raw = array2table(matchresult_time_raw, 'VariableNames', {'decomp', 'ref', 'time'});
 matchresult_time = array2table(matchresult_time, 'VariableNames', {'decomp', 'ref', 'time'});
 

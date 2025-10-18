@@ -1,4 +1,5 @@
-%% 对超声速度图像进行卷积盲源分离
+% 对超声速度图像进行卷积盲源分离，使用了仿真数据集
+% 采用并行计算，提高了计算效率
 clear; clc; close all;
 addpath('./Func');
 % 拓展因子
@@ -8,10 +9,14 @@ Tolx = 1e-4;
 % 潜在成分个数
 numCompo = 10;
 
-%% 1.三维数组转二维数组
-% load('Data/simulation/datasets1/TVIdata_compo12_NC.mat');
-for setset = 1%:10
-tic;
+% 开启并行池
+if isempty(gcp('nocreate'))
+    parpool;
+end
+
+% 1.三维数组转二维数组
+for setset = 1:10
+    tic;
     datasets_num = num2str(setset);
     % 导入空间源成分
     folderPath = ['./Data/simulation/figure/image_mat' datasets_num '/'];
@@ -43,29 +48,53 @@ tic;
     TVIdata = Xs * Xt';
     TVIdata = reshape(TVIdata, 400, 128, []);
 
-    %%
-    for r = 1:400/8-1
-        for c = 1:128/8-1
-            disp(['row=' num2str(r) ',col=' num2str(c)]);
-            winRow = (1:16)+(r-1)*8;
-            winCol = (1:16)+(c-1)*8;
-            TVIData = TVIdata(winRow, winCol, :);
-            TVIData = reshape(TVIData, length(winRow)*length(winCol), []);
+    [M, N, ~] = size(TVIdata);
+    % 窗口大小
+    Row = 16; Col = 16;
+    % 窗口移动距离
+    dRow = 8; dCol = 8;
+    % 行数与列数
+    numRows = (M-Row)/dRow+1;
+    numCols = (N-Col)/dCol+1;
 
-            %% 2.沿着时间进行Z-score
+    % 存储空间预分配
+    % DecompoResults = struct();
+    % DecompoResults.B = cell(numRows, numCols);
+    % DecompoResults.sources = cell(numRows, numCols);
+    % DecompoResults.decompo_pulses = cell(numRows, numCols);
+    % DecompoResults.CoV = cell(numRows, numCols);
+    % DecompoResults.wFirst = cell(numRows, numCols);
+    % DecompoResults.sourceFirst = cell(numRows, numCols);
+    tmpB = cell(numRows, numCols);
+    tmpSources = cell(numRows, numCols);
+    tmpDecompoPulses = cell(numRows, numCols);
+    tmpCoV = cell(numRows, numCols);
+    tmpWFirst = cell(numRows, numCols);
+    tmpSourcesFirst = cell(numRows, numCols);
+
+    for r = 1:numRows
+        parfor c = 1:numCols
+
+            disp(['row=' num2str(r) ',col=' num2str(c)]);
+            winRow = (1:Row)+(r-1)*dRow;
+            winCol = (1:Col)+(c-1)*dCol;
+            TVIData = TVIdata(winRow, winCol, :);
+            TVIData = reshape(TVIData, Row*Col, []);
+
+            % 2.沿着时间进行Z-score
             TVIData = (TVIData - mean(TVIData, 2)) ./ std(TVIData, 0, 2);
             % figure;
             % plot(TVIData');
 
-            %% 3.数据拓展
+            % 3.数据拓展
             eY = extend(TVIData, exFactor);
             eY = eY(:, 1:size(TVIData, 2));
 
-            %% 4.在每个维度上减去均值
+            % 4.在每个维度上减去均值
             eY = stripmean(eY, 'st');
             % L = size(eY, 2);
 
-            %% 5.白化
+            % 5.白化
             % 协方差矩阵特征值分解
             [V, D] = eig(cov(eY'));
             [d, idx] = sort(diag(D), 'descend');
@@ -73,13 +102,9 @@ tic;
             D = diag(d);
             % 选取贡献占比70%的特征值
             d = d ./ sum(d);
-            d_accu = 0;
-            for ii = 1:length(d)
-                d_accu = d_accu + d(ii);
-                if d_accu > 0.7
-                    break;
-                end
-            end
+            cumuSum = cumsum(d);
+            ii = find(cumuSum > 0.7, 1);
+            % 生成新的特征向量与特征值
             D_new = D(1:ii, 1:ii) - mean(diag(D(ii+1:end, ii+1:end)));
             V_new = V(:, 1:ii);
             % 白化矩阵WM，采用PCA白化格式
@@ -88,13 +113,15 @@ tic;
             % 白化后的数据
             Z = WM * eY;
 
-            % figure;
-            % plot(Z');
+            % 6.初始化矩阵B
+            B = zeros(ii, numCompo);
+            source = zeros(size(eY, 2), numCompo);
+            decompo_pulses = cell(1, numCompo);
+            CoV = zeros(1, numCompo);
+            sourcesFirst = zeros(size(eY, 2), numCompo);
+            wFirst = zeros(ii, numCompo);
 
-            %% 6.初始化矩阵B
-            B = zeros(size(D_new));
-
-            %% 7.迭代更新
+            % 7.迭代更新
             for i = 1:numCompo
                 iterCount = 0;
                 w_new = randn(size(D_new, 1), 1);
@@ -118,22 +145,17 @@ tic;
                         break;
                     end
                 end
+                % 一阶段结果存储
                 sourcesFirst(:, i) = Z' * w_new;
                 wFirst(:, i) = w_new;
-                % w_new
+                % tmpSourceFirst{r, c}(:, i) = Z' * w_new;
+                % tmpWFirst{r, c}(:, i) = w_new;
 
                 CoV_new = Inf;
                 while true
                     CoV_old = CoV_new;
                     s = w_new' * Z;
                     [source_new, PT, CoV_new, ~] = blindDeconvPeakFinding(s, 20, 4, 20*2, 2);
-
-                    % figure;
-                    % subplot(2,1,1); plot(s); title('s');
-                    % subplot(2,1,2); plot(source_new); title('source');
-                    % sgtitle(['row=' num2str(r) ' col=' num2str(c) ' cp=' num2str(i)]);
-                    % drawnow;
-
                     w_new = mean(Z(:, PT), 2);
                     if CoV_new >= CoV_old
                         break;
@@ -145,19 +167,32 @@ tic;
                 source(:, i) = source_new;
                 decompo_pulses{i} = PT;
                 CoV(i) = CoV_new;
+                % tmpB{r, c}(:, i) = w_new;
+                % tmpSources{r, c}(:, i) = source_new;
+                % tmpDecompoPulses{r, c}{i} = PT;
+                % tmpCoV{r, c}(i) = CoV_new;
             end
-            DecompoResults.B{r, c} = B;
-            DecompoResults.source{r, c} = source;
-            DecompoResults.decompo_pulses{r, c} = decompo_pulses;
-            DecompoResults.CoV{r, c} = CoV;
-            DecompoResults.wFirst{r, c} = wFirst;
-            DecompoResults.sourceFirst{r, c} = sourcesFirst;
+
+            tmpB{r, c} = B;
+            tmpSources{r, c} = source;
+            tmpDecompoPulses{r, c} = decompo_pulses;
+            tmpCoV{r, c} = CoV;
+            tmpWFirst{r, c} = wFirst;
+            tmpSourcesFirst{r, c} = sourcesFirst;
 
             % close all;
         end
     end
-    save(['./Data/simulation/datasets' datasets_num '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults');
+
+    DecompoResults.B = tmpB;
+    DecompoResults.sources = tmpSources;
+    DecompoResults.decompo_pulses = tmpDecompoPulses;
+    DecompoResults.CoV = tmpCoV;
+    DecompoResults.wFirst = tmpWFirst;
+    DecompoResults.sourceFirst = tmpSourcesFirst;
+
+    save(['./Data/simulation/datasets' datasets_num '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
     % save(['result' datasets_num '.mat'], 'DecompoResults');
-        toc;
+    toc;
     disp(['程序用时：' num2str(toc)])
 end

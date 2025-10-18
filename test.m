@@ -80,65 +80,65 @@ for i = 1%:size(decompoSourceAll, 2)
         ccc(i, j) = corrVals(idx);
     end
 end
-
 %%
-matchresult_time_raw = [];
-% 计算RoA
-for i = 1:length(decompoPulseAll)
-    for j = 1:length(ipulses)
-        [Array1, Array2] = meshgrid(decompoPulseAll{i}, ipulses{j});
-        diff_values = Array1 - Array2;
-        valid_elements = diff_values <= 15*2 & diff_values >= 0;
-        count = sum(valid_elements(:));
-        r = count/(length(decompoPulseAll{i})+length(ipulses{j})-count);
-        if r > 1
-            r = 1;
-        end
-        spike_ROA_matrix(i, j) = r;
-        matchresult_time_raw(end+1,:) = [i, j, r];
-    end
-end
-matchresult_time = matchresult_time_raw;
-for mu = 1:length(decompoPulseAll)
-    tmpInd = find(matchresult_time(:,1) == mu);
-    if length(tmpInd) > 1
-        [~, tmpInd2] = max(matchresult_time(tmpInd,3));
-        deleteInd = setdiff(1:length(tmpInd), tmpInd2);
-        matchresult_time(tmpInd(deleteInd), :) = [];
-    end
-end
-% matchresult_time1 = matchresult_time;
-for mu = 1:length(ipulses)
-    tmpInd = find(matchresult_time(:,2) == mu);
-    if length(tmpInd) > 1
-        [~, tmpInd2] = max(matchresult_time(tmpInd,3));
-        deleteInd = setdiff(1:length(tmpInd), tmpInd2);
-        matchresult_time(tmpInd(deleteInd), :) = [];
-    end
-end
-matchresult_time_raw = array2table(matchresult_time_raw, 'VariableNames', {'decomp', 'ref', 'time'});
-matchresult_time = array2table(matchresult_time, 'VariableNames', {'decomp', 'ref', 'time'});
-
-plotDecomps(ipulses, [], 2000, 0, 0, []);
+d1 = 8;
+d2 = 4;
+ref = 9;
+figure;
+subplot(5,1,1);
+plot(-T(:, d1));
+title('BPM')
+subplot(5,1,2);
+plot(-T_norm(:, d1));
+hold on;
+scatter(decompo_pulses{d1},zeros(length(decompo_pulses{d1})), 1000, 'black', '|');
+title('BPM normalization')
+subplot(5,1,3);
+plot(-decompoSourceFirstAll(:, d2));
+% hold on;
+% scatter(decompoPulseAll{d2}, zeros(length(decompoPulseAll{d2})), 1000, "black", '|');
+title('USCBSS First Step')
+subplot(5,1,4);
+plot(decompoSourceAll(:, d2));
+hold on;
+scatter(decompoPulseAll{d2}, zeros(length(decompoPulseAll{d2})), 1000, "black", '|');
+title('USCBSS Second Step')
+subplot(5,1,5);
+plot(Xt(:, ref));
+hold on;
+scatter(ipulses{ref}, zeros(length(ipulses{ref})), 1000, "black", '|');
+title('Ref Source')
+set(gcf,'unit','normalized','position',[0.05,0.1,0.9,0.6]);
 
 %%
 plotDecomps({ipulses{6}, decompoPulseAll{12}}, [], 2000, 0, 0, []);
 [c, l] = xcorr(decompoSourceAll(:, 7), decompoSourceAll(:, 10), 'coeff');
 figure;
 plot(c);
-%%
+%% 将USConvBSS的结果与BPM进行对比
 figure;
 subplot(2,1,1);
 hold on;
 for i=1:10
     % load(['Results/result' num2str(i) '_Update.mat']);
     load(['Results/datasets' num2str(i) '_result.mat']);
-    boxplot(matchresult_time.time, 'Positions', i-0.1, 'Colors', 'r');
+    boxplot(matchresult_time.time, 'Positions', i-0.2, 'Colors', 'r');
     hold on;
     timeMean(i) = mean(matchresult_time.time);
     numMU(i) = size(matchresult_time, 1);
 end
-plot((1:10)-0.1, timeMean, 'r-*');
+plot((1:10)-0.2, timeMean, 'r-*');
+hold on;
+
+for i=1:10
+    % load(['Results/result' num2str(i) '_Update.mat']);
+    load(['Results/datasets' num2str(i) '_resultnew.mat']);
+    boxplot(matchresult_time.time, 'Positions', i, 'Colors', 'b');
+    hold on;
+    timeMean2(i) = mean(matchresult_time.time);
+    numMU2(i) = size(matchresult_time, 1);
+end
+plot((1:10), timeMean2, 'b-*');
 hold on;
 
 load('Results/compo12_NC_NMFm0.9_BPM_10sets.mat');
@@ -151,21 +151,23 @@ for i = 1:10
 end
 match_BPM = matchresult_final_all;
 for i = 1:10
-    boxplot(match_BPM{i}.time, 'Positions', i+0.1, 'Colors', 'g');
+    boxplot(match_BPM{i}.time, 'Positions', i+0.2, 'Colors', 'g');
     hold on;
 end
-plot((1:10)+0.1,time_mean_BPM,'g-*');
+plot((1:10)+0.2,time_mean_BPM,'g-*');
 ylabel('RoA (Time)');
 xticks(1:10)
 xticklabels(1:10);
-legend('USCBSS', 'BPM');
+legend('USCBSS', 'USCBSS2', 'BPM');
 
 subplot(2,1,2);
 plot(1:10, numMU, 'r-*');
 hold on;
+plot(1:10, numMU2, 'b-*');
+hold on;
 plot(1:10, No_BPM, 'g-*');
 ylabel('No. MU');
-legend('USCBSS', 'BPM');
+legend('USCBSS', 'USCBSS2', 'BPM');
 
 sgtitle('USCBSS vs BPM')
 set(gcf,'unit','normalized','position',[0.05,0.1,0.9,0.6]);
