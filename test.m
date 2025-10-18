@@ -1,5 +1,5 @@
 clear; clc; close all;
-%%
+%% 使用时间源成分进行CBSS
 datasets_num = '2';
 % 拓展因子
 exFactor = 20;
@@ -13,36 +13,16 @@ for i = 1:10
     decompo_pulses{i} = PT;
 end
 
-%% 绘制单次实验的一个拟合曲线
-compo = 1;
-figure;
-subplot(2,1,1);
-plot(params.x{compo},params.f{compo},'Color','b');
-dif = diff(params.x{compo});
-delta = dif(1);
-s = sum(params.f{compo}*delta);
-xx = -5:0.001:5;
-yy = sech(xx).^2;
-hold on;
-plot(xx,yy,'Color','r');
-ss = sum(yy*0.001);
-% figure;
-hold on;
-[counts,edges] = histcounts(Xt(:,compo),'BinWidth',delta);
-histogram('BinCounts',counts/(4000*delta),'BinEdges',edges);
-ylabel('概率密度');
-legend('ksdensity','sech^2','hist');
-title('Xt vs sech^2');
-
-% figure;
-subplot(2,1,2);
-tt = 0:0.0005:2;
-tt(1) = [];
-plot(tt,Xt(:,compo)');
-xlabel('time');
-ylabel('velocity');
-title('twitch curve');
-
+%% 
+data = importdata('./Data/iEMG/24-06-21/iEMG_S1_M1_level1_trial1_24-06-21_UUS.eaf');
+muNum = max(data.data(:, 2));
+iPulses = {};
+for mu = 1:muNum
+    iPulses{mu} = round(data.data(find(data.data(:, 2) == mu), 1)' * 1000);
+end
+plotDecomps(iPulses, [], 1000, 0, 0, []);
+xlim([3, 13])
+% plotDecomps(decompoPulseAll, [], 1000, 0, 0, []);
 %% 初步筛选
 % 保留的脉冲串
 decompoPulseAll = {};

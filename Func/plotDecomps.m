@@ -9,6 +9,9 @@ function [maxAP,fig] = plotDecomps(pulses,muaps,fsamp,flag_feat,order,fig)
 %   flag_feat: whether to show the (covISI, aveFre)
 %   order: whether to re-arrange the pulses depending on the recruitment
 %   fig: the handle of figure to plot
+% 
+% 常用方法：plotDecomps(pulses, [], fsamp, 0, 0, [])
+% 这样可以直接绘制pulses中的所有脉冲串，fsamp为采样率
 
 % if ~exist('fig','var')
     fig = figure('color',[1,1,1]);

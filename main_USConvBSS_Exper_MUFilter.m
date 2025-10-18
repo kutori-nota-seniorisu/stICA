@@ -1,7 +1,8 @@
 %% 仿真数据Pulse筛选
 clear; clc; close all;
-datasets_num = '10';
-load(['./Data/simulation/datasets' datasets_num '/USCBSS_compo10.mat']);
+load('./Data/experiment/24-06-21/UUS-iEMG/S1M1L1T2P1_USCBSS_compo25.mat');
+% datasets_num = '10';
+% load(['./Data/simulation/datasets' datasets_num '/USCBSS_compo10.mat']);
 %% 初步筛选
 % 保留的脉冲串
 decompoPulseAll = {};
@@ -122,7 +123,7 @@ ccMax = max(abs(cc), [], 3);
 
 %% 绘制筛选后的MU
 close all;
-fsampu = 2000;
+fsampu = 1000;
 L = size(decompoSourceAll, 1);
 f = (0:1:L/2) * fsampu / L;
 delInd = [];
@@ -143,6 +144,7 @@ for muii = 1:size(decompoSourceAll, 2)
     hold on
     plot(decompoSourceAll(:, muii));
     title('estimated source')
+    legend('phase 1', 'phase 2')
     subplot(3,1,3);
     plot(f, sFFT);
     title(['ratio='  num2str(energyRatio*100) '%']);

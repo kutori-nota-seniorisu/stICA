@@ -16,15 +16,15 @@ if isempty(gcp('nocreate'))
 end
 
 %% TVI数据预处理
-for level = 1:2
-    for trial = 1:2
-        for pp = 1:2
+for level = 1%:2
+    for trial = 1%:2
+        for pp = 1%:2
             % 导入TVI数据
             tviFile = ['./Data/experiment/24-06-21/UUS-iEMG/TVIData_S1_M1_level' num2str(level) '_trial' num2str(trial) '_Dual_24-06-21_' num2str(pp) '.mat'];
             load(tviFile);
-            TVIData = cat(3, zeros(395, 128, 20), TVIData);
+            % TVIData = cat(3, zeros(395, 128, 20), TVIData);
             % filter the TVI data
-            TVIDataFilter = TVIData;
+            TVIDataFilter = TVIData(3001:13000);
             % 轴向0.5MHz低通滤波
             [Be1, Ae1] = butter(4, 0.5/(7.7*4)*2, 'low');
             parfor i = 1:size(TVIDataFilter, 3)
@@ -42,7 +42,7 @@ for level = 1:2
                 end
             end
             % 对每一列降采样
-            TVITmp = zeros(128, 128, 15000);
+            TVITmp = zeros(128, size(TVIDataFilter, 2), size(TVIDataFilter, 3));
             parfor i = 1:size(TVIDataFilter, 3)
                 tmp = TVIDataFilter(:, :, i);
                 tmp = resample(tmp, 128, 395);
