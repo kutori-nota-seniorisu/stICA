@@ -16,6 +16,7 @@ end
 
 % 1.三维数组转二维数组
 for setset = 1:10
+    disp('开始数据预处理');
     tic;
     datasets_num = num2str(setset);
     % 导入空间源成分
@@ -48,6 +49,11 @@ for setset = 1:10
     TVIdata = Xs * Xt';
     TVIdata = reshape(TVIdata, 400, 128, []);
 
+    toc;
+    disp(['数据预处理用时' num2str(toc)]);
+
+    disp('开始数据迭代');
+    tic;
     [M, N, ~] = size(TVIdata);
     % 窗口大小
     Row = 16; Col = 16;
@@ -184,6 +190,9 @@ for setset = 1:10
         end
     end
 
+    toc;
+    disp(['数据迭代用时' num2str(toc)]);
+
     DecompoResults.B = tmpB;
     DecompoResults.sources = tmpSources;
     DecompoResults.decompo_pulses = tmpDecompoPulses;
@@ -193,6 +202,5 @@ for setset = 1:10
 
     save(['./Data/simulation/datasets' datasets_num '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
     % save(['result' datasets_num '.mat'], 'DecompoResults');
-    toc;
-    disp(['程序用时：' num2str(toc)])
+
 end

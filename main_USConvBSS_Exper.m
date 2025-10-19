@@ -19,6 +19,8 @@ end
 for level = 1%:2
     for trial = 1%:2
         for pp = 1%:2
+            disp('开始数据预处理');
+            tic;
             % 导入TVI数据
             tviFile = ['./Data/experiment/24-06-21/UUS-iEMG/TVIData_S1_M1_level' num2str(level) '_trial' num2str(trial) '_Dual_24-06-21_' num2str(pp) '.mat'];
             load(tviFile);
@@ -50,8 +52,12 @@ for level = 1%:2
             end
             TVIDataFilter = TVITmp;
             clear TVITmp;
+            toc;
+            disp(['数据预处理用时' num2str(toc)]);
 
             %%
+            disp('开始数据迭代');
+            tic;
             [M, N, ~] = size(TVIDataFilter);
             % 窗口大小
             Row = 8; Col = 8;
@@ -187,6 +193,8 @@ for level = 1%:2
                     % close all;
                 end
             end
+            toc;
+            disp(['数据迭代用时' num2str(toc)]);
 
             DecompoResults.B = tmpB;
             DecompoResults.sources = tmpSources;
