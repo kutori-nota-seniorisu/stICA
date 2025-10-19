@@ -1,6 +1,6 @@
 %% 仿真数据Pulse筛选
 clear; clc; close all;
-load('./Data/experiment/24-06-21/UUS-iEMG/S1M1L2T1P1_USCBSS_compo25.mat');
+load('./Data/experiment/24-06-21/UUS-iEMG/S1M1L2T1P2_USCBSS_compo25.mat');
 % datasets_num = '10';
 % load(['./Data/simulation/datasets' datasets_num '/USCBSS_compo10.mat']);
 %% 初步筛选
@@ -140,11 +140,11 @@ for muii = 1:size(decompoSourceAll, 2)
     xlim([0, L])
     title('spike train')
     subplot(3,1,2);
-    plot(decompoSourceFirstAll(:, muii));
-    hold on
-    plot(decompoSourceAll(:, muii));
+    % plot(decompoSourceFirstAll(3001:13000, muii));
+    % hold on
+    plot(decompoSourceAll(3001:13000, muii));
     title('estimated source')
-    legend('phase 1', 'phase 2')
+    % legend('phase 1', 'phase 2')
     subplot(3,1,3);
     plot(f, sFFT);
     title(['ratio='  num2str(energyRatio*100) '%']);

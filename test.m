@@ -14,7 +14,7 @@ for i = 1:10
 end
 
 %% 
-data = importdata('./Data/iEMG/24-06-21/iEMG_S1_M1_level1_trial1_24-06-21_UUS.eaf');
+data = importdata('./Data/iEMG/24-06-21/iEMG_S1_M1_level2_trial1_24-06-21_UUS.eaf');
 muNum = max(data.data(:, 2));
 iPulses = {};
 for mu = 1:muNum
