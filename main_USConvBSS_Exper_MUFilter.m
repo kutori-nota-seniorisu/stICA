@@ -1,6 +1,6 @@
 %% 仿真数据Pulse筛选
 clear; clc; close all;
-load('./Data/experiment/24-06-21/UUS-iEMG/S1M1L1T2P1_USCBSS_compo25.mat');
+load('./Data/experiment/24-06-21/UUS-iEMG/S1M1L2T1P1_USCBSS_compo25.mat');
 % datasets_num = '10';
 % load(['./Data/simulation/datasets' datasets_num '/USCBSS_compo10.mat']);
 %% 初步筛选
@@ -129,7 +129,7 @@ f = (0:1:L/2) * fsampu / L;
 delInd = [];
 for muii = 1:size(decompoSourceAll, 2)
     % 傅里叶变换
-    tmp = abs(fft(decompoSourceAll(:, muii))/L);
+    tmp = abs(fft(decompoSourceAll(3001:13000, muii))/L);
     sFFT = tmp(1:L/2+1);
     sFFT(2:end-1) = 2*sFFT(2:end-1);
     energyRatio = sum(sFFT(1:100)) / sum(sFFT);

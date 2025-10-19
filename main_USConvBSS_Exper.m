@@ -162,11 +162,14 @@ for level = 1%:2
                         % tmpWFirst{r, c}(:, i) = w_new;
 
                         CoV_new = Inf;
+                        countcount = 0;
                         while true
                             CoV_old = CoV_new;
                             s = w_new' * Z;
                             [source_new, PT, CoV_new, ~] = blindDeconvPeakFinding(s, 20, 4, 20*2, 2);
                             w_new = mean(Z(:, PT), 2);
+                            countcount = countcount + 1;
+                            disp(['r=' num2str(r) '，c=' num2str(c) '，i=' num2str(i) '，二阶段迭代' num2str(countcount) '次']);
                             if CoV_new > CoV_old
                                 break;
                             end
