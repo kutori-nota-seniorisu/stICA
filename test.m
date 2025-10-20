@@ -23,41 +23,13 @@ end
 plotDecomps(iPulses, [], 1000, 0, 0, []);
 xlim([3, 13])
 % plotDecomps(decompoPulseAll, [], 1000, 0, 0, []);
-%% 初步筛选
-% 保留的脉冲串
-decompoPulseAll = {};
-% 保留的估计源
-decompoSourceAll = [];
-% 保留的一阶段估计源
-decompoSourceFirstAll = [];
-% 保留的CoV
-decompoCoVAll = [];
-for r = 1:400/8-1
-    for c = 1:128/8-1
-
-        % disp(['row=' num2str(r) ',col=' num2str(c)]);
-        tmpPulses = DecompoResults.decompo_pulses{r, c};
-        tmpSourcesFirst = DecompoResults.sourceFirst{r, c};
-        tmpSources = DecompoResults.sources{r, c};
-        % tmpCoV = DecompoResults.CoV{r, c};
-        % rho = corr(sources);
-        for mu = 1:10
-            if isempty(tmpPulses{mu})
-                continue;
-            end
-            decompoPulseAll{end+1} = tmpPulses{mu};
-            decompoSourceAll(:, end+1) = tmpSources(:, mu);
-            decompoSourceFirstAll(:, end+1) = tmpSourcesFirst(:, mu);
-            % decompoCoVAll(end+1) = tmpCoV(mu);
-        end
-    end
-end
-
-for i = 1%:size(decompoSourceAll, 2)
-    for j = i:size(decompoSourceAll, 2)
-        [corrVals, ~] = xcorr(decompoSourceAll(:, i), decompoSourceAll(:, j), 'coeff');
-        [~, idx] = max(abs(corrVals));
-        ccc(i, j) = corrVals(idx);
+%% 绘制Data{1,2}每条通道的波形
+for i = 1:13
+    figure;
+    for j = 1:10
+        subplot(5,2,j);
+        plot(Data{1,2}((i-1)*10+j,:));
+        title(num2str((i-1)*10+j));
     end
 end
 %%
