@@ -58,7 +58,7 @@ while true
         disp(['迭代完成，本次迭代' num2str(iterCount) '次']);
         break;
     end
-    if iterCount == 1000
+    if iterCount == 10000
         disp('迭代次数达到上限，迭代终止');
         break;
     end
