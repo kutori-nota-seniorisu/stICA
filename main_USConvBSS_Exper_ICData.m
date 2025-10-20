@@ -203,4 +203,10 @@ DecompoResults.CoV = tmpCoV;
 DecompoResults.wFirst = tmpWFirst;
 DecompoResults.sourceFirst = tmpSourceFirst;
 
-save('./Data/experiment/ICdata/R10/USCBSS_compo25.mat', 'DecompoResults', '-v7.3');
+savepath = './Data/experiment/ICdata/R10';
+if ~exist(savepath, 'dir')
+    mkdir(savepath);
+    disp('创建路径！');
+end
+save([savepath '/USCBSS_compo25.mat'], 'DecompoResults', '-v7.3');
+disp('数据保存完成！');
