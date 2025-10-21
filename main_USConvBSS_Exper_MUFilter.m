@@ -69,6 +69,7 @@ for r = 1:size(DecompoResults.decompo_pulses, 1)
         end
     end
 end
+
 %% 去除噪声，去除标准为能量占比
 L = size(decompoSourceAll, 1);
 delInd = [];
@@ -129,7 +130,7 @@ f = (0:1:L/2) * fsampu / L;
 delInd = [];
 for muii = 1:size(decompoSourceAll, 2)
     % 傅里叶变换
-    tmp = abs(fft(decompoSourceAll(3001:13000, muii))/L);
+    tmp = abs(fft(decompoSourceAll(:, muii))/L);
     sFFT = tmp(1:L/2+1);
     sFFT(2:end-1) = 2*sFFT(2:end-1);
     energyRatio = sum(sFFT(1:100)) / sum(sFFT);
@@ -140,11 +141,11 @@ for muii = 1:size(decompoSourceAll, 2)
     xlim([0, L])
     title('spike train')
     subplot(3,1,2);
-    % plot(decompoSourceFirstAll(3001:13000, muii));
-    % hold on
-    plot(decompoSourceAll(3001:13000, muii));
+    plot(decompoSourceFirstAll(:, muii));
+    hold on
+    plot(decompoSourceAll(:, muii));
     title('estimated source')
-    % legend('phase 1', 'phase 2')
+    legend('phase 1', 'phase 2')
     subplot(3,1,3);
     plot(f, sFFT);
     title(['ratio='  num2str(energyRatio*100) '%']);
