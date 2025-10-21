@@ -10,7 +10,7 @@ numCompo = 25;
 % 超声采样率
 fsampu = 1000;
 
-% 开启并行池
+%% 开启并行池
 if isempty(gcp('nocreate'))
     parpool;
 end
@@ -110,9 +110,9 @@ for r = 1:numRows
         % 选取贡献占比70%的特征值
         d = d ./ sum(d);
         cumuSum = cumsum(d);
-        ii = find(cumuSum > 0.7, 1);
+        ii = find(cumuSum > 0.9, 1);
         % 生成新的特征向量与特征值
-        D_new = D(1:ii, 1:ii) - mean(diag(D(ii+1:end, ii+1:end)));
+        D_new = D(1:ii, 1:ii) - mean(diag(D(ii+1:end, ii+1:end))) * eye(ii);
         V_new = V(:, 1:ii);
         % 白化矩阵WM，采用PCA白化格式
         % WM = sqrt(inv(D)) * V';

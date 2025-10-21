@@ -111,7 +111,7 @@ for setset = 1:10
             cumuSum = cumsum(d);
             ii = find(cumuSum > 0.7, 1);
             % 生成新的特征向量与特征值
-            D_new = D(1:ii, 1:ii) - mean(diag(D(ii+1:end, ii+1:end)));
+            D_new = D(1:ii, 1:ii) - mean(diag(D(ii+1:end, ii+1:end))) * eye(ii);
             V_new = V(:, 1:ii);
             % 白化矩阵WM，采用PCA白化格式
             % WM = sqrt(inv(D)) * V';
