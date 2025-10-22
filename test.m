@@ -156,6 +156,7 @@ end
 plotDecomps(decompo_pulses, [], 1000, 0, 0, []);
 
 %%
+close all;
 % figure;
 for iii = 1:length(pulses_new)
     % subplot(length(pulses_new),1,iii);
@@ -163,8 +164,8 @@ for iii = 1:length(pulses_new)
     plot(decompoSourceAll(:, 2));
     % plot(T_norm(:, 1))
     hold on;
-    scatter(pulses_new{iii}, zeros(length(pulses_new{iii})), 10000, 'red', '|');
-    ylim([-10,10])
+    scatter(pulses_new{iii}, zeros(length(pulses_new{iii})), 30000, 'red', '|');
+    ylim([-1,1])
     xlim([10000, 15000])
 end
 %% 计算RoA
