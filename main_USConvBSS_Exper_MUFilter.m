@@ -142,10 +142,10 @@ for muii = 1:size(decompoSourceAll, 2)
     title('spike train')
     subplot(3,1,2);
     plot(decompoSourceFirstAll(:, muii));
-    hold on
-    plot(decompoSourceAll(:, muii));
+    % hold on
+    % plot(decompoSourceAll(:, muii));
     title('estimated source')
-    legend('phase 1', 'phase 2')
+    % legend('phase 1', 'phase 2')
     subplot(3,1,3);
     plot(f, sFFT);
     title(['ratio='  num2str(energyRatio*100) '%']);
