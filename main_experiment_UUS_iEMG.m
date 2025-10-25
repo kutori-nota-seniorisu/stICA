@@ -170,7 +170,7 @@ for level = 1%:4
                 disp('开始迭代优化')
                 if flag_ICA
                     Ws = Ws0;
-                    fun = @(Ws) f_function2(Ws,U_hat,V_hat,params);
+                    fun = @(Ws) f_function(Ws,U_hat,V_hat,params);
 
                     %~ 共轭梯度法
                     % options = optimset('MaxIter', 250,'MaxFunEvals',4e4,'Display','iter','PlotFcns',@optimplotfval);
