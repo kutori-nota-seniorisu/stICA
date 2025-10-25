@@ -223,7 +223,6 @@ for level = 1%:4
                 set(gcf,'unit','normalized','position',[0.1,0.6,0.8,0.32]);
 
                 %% 保存变量
-                load(['./Data/experiment/' file_date import_file_name '.mat'])
                 savepath = ['./Data/experiment/' file_date 'S1M1L' num2str(level) 'T' num2str(trial) 'P' num2str(probe) '_compo' num2str(params.k) '_' flag_decomp 'm.mat'];
                 save(savepath, 'S', 'T', 'Ws0', 'Ws', 'Wt', 'U_hat', 'V_hat', 'params');
             end
