@@ -25,7 +25,7 @@ load(tviFile);
 TVIData = cat(3, zeros(119, 128, 2), v_2d_all);
 % filter the TVI data
 % TVIDataFilter = TVIData;
-TVIDataFilter = TVIData(:, :, 5001:25000);
+TVIDataFilter = TVIData;
 % 轴向0.5MHz低通滤波
 % [Be1, Ae1] = butter(4, 0.5/(7.7*4)*2, 'low');
 % parfor i = 1:size(TVIDataFilter, 3)

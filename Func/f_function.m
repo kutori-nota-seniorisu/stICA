@@ -4,7 +4,7 @@ Ws = reshape(Ws,params.k,params.k); %~ 如果采用粒子群优化算法需要�
 Wt = inv(Ws');
 
 % 计算时间熵
-if params.NMFt
+% if params.NMFt
     %~ 计算时间熵，无分布区别，采用sech2函数，不带偏度的单一分布概率密度函数
     y_t = V_hat*Wt;
     p_t = sech(y_t).^2;
@@ -12,20 +12,20 @@ if params.NMFt
     DET_t = log(abs(det(Wt)));
     f_t = -(L_t + DET_t);
 
-else
-    % 使用Xt的数据插值得到pdf
-    y_t = V_hat*Wt;
-    for i = 1:12
-        p_t(:, i) = ppval(params.pp(i), y_t(:, i));
-        idx1 = find(y_t(:, i) < params.pp(i).breaks(1));
-        p_t(idx1, i) = 0;
-        idx2 = find(y_t(:, i) > params.pp(i).breaks(end));
-        p_t(idx2, i) = 0;
-    end
-    L_t = sum(mean(log(p_t+eps)));
-    DET_t = log(abs(det(Wt)));
-    f_t = -(L_t + DET_t);
-end
+% else
+%     % 使用Xt的数据插值得到pdf
+%     y_t = V_hat*Wt;
+%     for i = 1:12
+%         p_t(:, i) = ppval(params.pp(i), y_t(:, i));
+%         idx1 = find(y_t(:, i) < params.pp(i).breaks(1));
+%         p_t(idx1, i) = 0;
+%         idx2 = find(y_t(:, i) > params.pp(i).breaks(end));
+%         p_t(idx2, i) = 0;
+%     end
+%     L_t = sum(mean(log(p_t+eps)));
+%     DET_t = log(abs(det(Wt)));
+%     f_t = -(L_t + DET_t);
+% end
 
 % 计算空间熵
 if params.skew_stICA

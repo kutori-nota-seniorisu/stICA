@@ -3,7 +3,7 @@ addpath('./Func')
 %% 修改参数
 for level = 1%:4
     for trial = 1%:2
-        for probe = 2%:2
+        for probe = 1%:2
             % import_file_name = 'TVI_Data_4000_CPWC1_22-11-14_3Mode_trial1.mat';
             % import_file_name = 'TVIData_StandardTest';
             % import_file_name = 'TVI_Data_10000_CPWC1_22-11-14_3Mode_trial1_new';
@@ -14,10 +14,8 @@ for level = 1%:4
             file_date = '24-06-21/UUS-iEMG/';
 
             % 导入数据
-            % load(['./Data/experiment/' file_date import_file_name '.mat'])
-            load(['F:/EEEMG/stICA_simple/Data/experiment/' file_date import_file_name '.mat'])
+            load(['./Data/experiment/' file_date import_file_name '.mat'])
             TVIdata = TVIData(:,:,3001:13000);
-            % TVIdata = TVIData(:,:,5001:10000);
             params.dataSize = [size(TVIdata,1) size(TVIdata,2) size(TVIdata,3)];
 
             flag_segment = 0; % 是否分段处理
@@ -31,12 +29,11 @@ for level = 1%:4
             flag_ICA = 1; %~ 是否使用ICA算法进行独立成分分析，迭代过程
 
             params.skew_stICA = 1; %~ 是否使用带偏度的stICA算法，1表示skew-stICA，0表示stICA(无偏)
-            params.skew_time = 1; % 是否对时间进行带偏度的ICA算法，1表示使用偏度
             params.MultiDistribution = 1; %~ 带偏度的stICA前提下，1表示1多概率密度分布函数”，0表示“单一概率密度分布函数”
             params.noise = 10; %~ 概率密度分布函数中峰值对应的横坐标超过params.noise的认为是噪声
 
             params.k = 12; %~ 潜在源的数目/主成分的个数
-            params.alpha = 0.5; %~ 时空ICA的权重参数,alpha=1时表示空间ICA，alpha=0时表示时间ICA
+            params.alpha = 0.8; %~ 时空ICA的权重参数,alpha=1时表示空间ICA，alpha=0时表示时间ICA
             params.mode = 'st';
 
             %% 下面是stICA算法的各部分实现
@@ -73,15 +70,18 @@ for level = 1%:4
 
                     Ws0 = eye(params.k)+randn(params.k)*0.9; %~ Ws作为变量初始化
 
-                    %~ NMF分解
-                    % TVI_norm = normalize(TVI_data,2,'range',[0 2]);
+                    % 归一化方式选择
+                    % 按列归一化
+                    TVI_norm = normalize(TVI_data, 'range', [0 2]);
 
                     % Min-Max归一化（Min-Max Normalization）
-                    TVI_data_max = max(max(TVI_data));
-                    TVI_data_min = min(min(TVI_data));
-                    TVI_norm = (TVI_data - TVI_data_min)/(TVI_data_max - TVI_data_min);
+                    % TVI_data_max = max(max(TVI_data));
+                    % TVI_data_min = min(min(TVI_data));
+                    % TVI_norm = (TVI_data - TVI_data_min)/(TVI_data_max - TVI_data_min);
 
-                    [U_hat,V_tmp] = nnmf(TVI_norm,params.k);
+                    % NMF分解
+                    optNMF = statset('UseParallel', true);
+                    [U_hat,V_tmp] = nnmf(TVI_norm, params.k, 'options', optNMF);
                     D = eye(params.k);
                     V_hat = V_tmp';
 
@@ -161,40 +161,6 @@ for level = 1%:4
                         params.b(i) = b;
                         params.u(i) = u;
                     end
-                    % 
-                    % % 时间分布拟合
-                    % pts = 0:0.0001:0.1;
-                    % for i=1:size(V_hat,2)
-                    %     zero_count = find(V_hat(:,i)==0);
-                    %     V_temp = V_hat(:,i);
-                    %     V_temp(zero_count) = [];
-                    %     if ~isempty(V_temp)
-                    %         % ksdensity核心平滑密度估计
-                    %         [ft_temp(:,i), xt(:,i)] = ksdensity(V_temp,pts);
-                    %         % 如果存在大于1.5的密度值，就对估计的概率密度函数进行归一化。
-                    %         % if ~isempty(find(f_temp(:,i) > 1.5))
-                    %         %     f(:,i) = normalize(f_temp(:,i),'range');
-                    %         % else
-                    %         ft(:,i) = ft_temp(:,i);
-                    %         % end
-                    %         % 找到成分i的概率密度函数最大值以及其索引
-                    %         [ft_max(i), idx_t(i)] = max(ft(:,i));
-                    %     else
-                    %         ft(:,i) = 0;
-                    %         xt(:,i) = 0;
-                    %         ft_max(i) = 0;
-                    %         idx_t(i) = 1;
-                    %     end
-                    % end
-                    % 
-                    % for i = 1:size(V_hat,2)
-                    %     % 拉普拉斯分布
-                    %     m = xt(idx_t(i),i);
-                    %     c = 1/(2*ft_max(i));
-                    %     %~ 参数整合
-                    %     params.m(i) = m;
-                    %     params.c(i) = c;
-                    % end
                 end
                 toc;
                 disp(['概率密度函数参数估计用时：' num2str(toc)]);
@@ -251,7 +217,8 @@ for level = 1%:4
                 set(gcf,'unit','normalized','position',[0.1,0.6,0.8,0.32]);
 
                 %% 保存变量
-                savepath = ['Results_UU/S1M1L' num2str(level) 'T' num2str(trial) '_compo' num2str(params.k) '_' flag_decomp 'm_skewST_stICA_' num2str(probe) '.mat'];
+                load(['./Data/experiment/' file_date import_file_name '.mat'])
+                savepath = ['./Data/experiment/' file_date 'S1M1L' num2str(level) 'T' num2str(trial) 'P' num2str(probe) '_compo' num2str(params.k) '_' flag_decomp 'm.mat'];
                 save(savepath, 'S', 'T', 'Ws0', 'Ws', 'Wt', 'U_hat', 'V_hat', 'params');
             end
         end

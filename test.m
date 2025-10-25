@@ -14,14 +14,14 @@ for i = 1:10
 end
 
 %% 绘制iEMG的pulse
-data = importdata('./Data/iEMG/24-06-21/iEMG_S1_M1_level2_trial1_24-06-21_UUS.eaf');
+data = importdata('./Data/iEMG/24-06-21/iEMG_S1_M1_level1_trial1_24-06-21_UUS.eaf');
 muNum = max(data.data(:, 2));
 iPulses = {};
 for mu = 1:muNum
     iPulses{mu} = round(data.data(find(data.data(:, 2) == mu), 1)' * 1000);
 end
 plotDecomps(iPulses, [], 1000, 0, 0, []);
-xlim([3, 13])
+% xlim([3, 13])
 % plotDecomps(decompoPulseAll, [], 1000, 0, 0, []);
 %% 绘制ICData的pulse，截取trigger后的30s数据，转化为对应于1000Hz的pulse
 load('./Data/experiment/ICdata/R10/R10.mat');
@@ -157,15 +157,15 @@ plotDecomps(decompo_pulses, [], 1000, 0, 0, []);
 
 %%
 close all;
-% figure;
+figure;
 for iii = 1:length(pulses_new)
-    % subplot(length(pulses_new),1,iii);
-    figure;
-    plot(decompoSourceAll(:, 2));
+    subplot(length(pulses_new),1,iii);
+    % figure;
+    plot(decompoSourceAll(:, 4));
     % plot(T_norm(:, 1))
     hold on;
-    scatter(pulses_new{iii}, zeros(length(pulses_new{iii})), 30000, 'red', '|');
-    ylim([-1,1])
+    scatter(pulses_new{iii}, zeros(length(pulses_new{iii})), 3000, 'red', '|');
+    ylim([-1, 1])
     xlim([10000, 15000])
 end
 %% 计算RoA

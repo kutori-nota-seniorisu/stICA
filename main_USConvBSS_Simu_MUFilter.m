@@ -137,7 +137,7 @@ for muii = 1:size(decompoSourceAll, 2)
     subplot(3,1,1);
     scatter(decompoPulseAll{muii}, ones(length(decompoPulseAll{muii})), 1000, "black", '|');
     xlim([0, L])
-    title('spike train')
+    title('pulse train')
     subplot(3,1,2);
     plot(decompoSourceFirstAll(:, muii));
     hold on

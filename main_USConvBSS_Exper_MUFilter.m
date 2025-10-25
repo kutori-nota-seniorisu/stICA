@@ -139,17 +139,20 @@ for muii = 1:size(decompoSourceAll, 2)
     subplot(4,1,1);
     scatter(decompoPulseAll{muii}, ones(length(decompoPulseAll{muii})), 1000, "black", '|');
     xlim([0, L])
-    title('spike train')
+    title('pulse train')
+
     subplot(4,1,2);
     plot(decompoSourceFirstAll(:, muii));
-    ylim([-5,5])
+    xlim([10000, 12000])
+    ylim([-5, 5])
     title('estimated source step1')
+
     subplot(4,1,3);
     plot(decompoSourceAll(:, muii));
-    % xlim([10000,14000])
-    ylim([-5,5])
+    xlim([10000, 12000])
+    ylim([-2, 2])
     title('estimated source step2')
-    % legend('phase 1', 'phase 2')
+
     subplot(4,1,4);
     plot(f, sFFT);
     title(['ratio='  num2str(energyRatio*100) '%']);
