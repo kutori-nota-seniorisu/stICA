@@ -174,8 +174,15 @@ for level = 1%:4
 
                     %~ 共轭梯度法
                     % options = optimset('MaxIter', 250,'MaxFunEvals',4e4,'Display','iter','PlotFcns',@optimplotfval);
-                    options = optimset('MaxIter', 250,'MaxFunEvals',4e4,'PlotFcns',@optimplotfval);
+                    disp('使用共轭梯度法');
+                    options = optimoptions('fminunc',...
+                        'MaxIterations',28800, ...
+                        'MaxFunctionEvaluations',500000, ...'OptimalityTolerance',1e-6, ...
+                        'OutputFcn',@myOutputFcn,...
+                        'Display','iter', ...'PlotFcn','optimplotfirstorderopt'
+                        'PlotFcn','optimplotfval');
                     [Ws,fval,exitflag,output] = fminunc(fun,Ws,options);
+                    disp(output.message);
 
                     %         %~ 粒子群优化算法
                     % %         options = optimoptions('particleswarm','ObjectiveLimit',1e-2);
