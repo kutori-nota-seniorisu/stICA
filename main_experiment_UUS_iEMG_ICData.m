@@ -63,13 +63,13 @@ for seg_i = 1
         Ws0 = eye(params.k) + randn(params.k)*0.9; %~ Ws作为变量初始化
 
         % 归一化方式选择
-        % 按列归一化
-        TVI_norm = normalize(TVI_data, 'range', [0 2]);
+        % 按列归一化，消除了各列的差异性，这可能导致激活时刻与非激活时刻难以区分
+        % TVI_norm = normalize(TVI_data, 'range', [0 2]);
 
         % Min-Max归一化（Min-Max Normalization）
-        % TVI_data_max = max(max(TVI_data));
-        % TVI_data_min = min(min(TVI_data));
-        % TVI_norm = (TVI_data - TVI_data_min)/(TVI_data_max - TVI_data_min);
+        TVI_data_max = max(max(TVI_data));
+        TVI_data_min = min(min(TVI_data));
+        TVI_norm = (TVI_data - TVI_data_min)/(TVI_data_max - TVI_data_min);
 
         % NMF分解
         % optNMF = statset('UseParallel', true);

@@ -184,3 +184,18 @@ for i = 1:length(decompo_pulses)
         matchresult_time_raw(end+1,:) = [i, j, r];
     end
 end
+
+%%
+% 检查异常值
+outlier_ratio = zeros(1, size(TVI_data, 2));
+for i = 1:size(TVI_data, 2)
+    Q1 = quantile(TVI_data(:, i), 0.25);
+    Q3 = quantile(TVI_data(:, i), 0.75);
+    IQR = Q3 - Q1;
+    outliers = TVI_data(:, i) < (Q1 - 1.5*IQR) | TVI_data(:, i) > (Q3 + 1.5*IQR);
+    outlier_ratio(i) = sum(outliers) / length(TVI_data(:, i));
+end
+
+if any(outlier_ratio > 0.05)
+    fprintf('检测到异常值，建议使用按列归一化或Robust归一化\n');
+end
