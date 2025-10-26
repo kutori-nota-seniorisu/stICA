@@ -168,8 +168,8 @@ for seg_i = 1
         % options = optimset('MaxIter', 250,'MaxFunEvals',4e4,'Display','iter','PlotFcns',@optimplotfval);
         disp('使用共轭梯度法');
         options = optimoptions('fminunc',...
-            'MaxIterations',28800, ...
-            'MaxFunctionEvaluations',500000, ...'OptimalityTolerance',1e-6, ...
+            'MaxIterations',288000, ...
+            'MaxFunctionEvaluations',5000000, ...'OptimalityTolerance',1e-6, ...
             'Display','iter', ...'PlotFcn','optimplotfirstorderopt'
             'PlotFcn','optimplotfval');
         [Ws,fval,exitflag,output] = fminunc(fun,Ws,options);
@@ -205,7 +205,7 @@ for seg_i = 1
     figure;
     for i=1:params.k
         subplot(2,params.k,2*(i-1)+1)
-        imagesc(reshape(S(:,i),[395 128]));
+        imagesc(reshape(S(:,i),[119 128]));
         title(['Space #' num2str(i)]);
         % colorbar
         subplot(2,params.k,2*(i-1)+2)
