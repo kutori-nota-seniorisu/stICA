@@ -80,8 +80,8 @@ for level = 1%:4
                     % TVI_norm = (TVI_data - TVI_data_min)/(TVI_data_max - TVI_data_min);
 
                     % NMF分解
-                    optNMF = statset('UseParallel', true);
-                    [U_hat,V_tmp] = nnmf(TVI_norm, params.k, 'options', optNMF);
+                    % optNMF = statset('UseParallel', true);
+                    [U_hat,V_tmp] = nnmf(TVI_norm, params.k);%, 'options', optNMF);
                     D = eye(params.k);
                     V_hat = V_tmp';
 
