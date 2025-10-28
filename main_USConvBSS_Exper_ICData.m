@@ -121,7 +121,7 @@ parfor kkk = 1:(numRows*numCols)
     V_new = V(:, 1:ii);
     % 白化矩阵WM，采用PCA白化格式
     % WM = sqrt(inv(D)) * V';
-    WM = sqrt(D_new)/V_new';
+    WM = sqrt(D_new)\V_new';
     % 白化后的数据
     Z = WM * eY;
 

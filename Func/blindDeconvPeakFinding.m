@@ -34,7 +34,7 @@ eS = eS - mean(eS, 2);
 % 协方差矩阵特征值分解
 [V, D] = eig(cov(eS'));
 % 白化矩阵WM，采用PCA白化格式
-WM = sqrt(D)/V';
+WM = sqrt(D)\V';
 % 白化后的数据
 Z = WM * eS;
 % 迭代更新
