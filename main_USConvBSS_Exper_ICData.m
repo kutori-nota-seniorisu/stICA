@@ -121,7 +121,7 @@ parfor kkk = 1:(numRows*numCols)
     V_new = V(:, 1:ii);
     % 白化矩阵WM，采用PCA白化格式
     % WM = sqrt(inv(D)) * V';
-    WM = sqrt(inv(D_new)) * V_new';
+    WM = sqrt(D_new)/V_new';
     % 白化后的数据
     Z = WM * eY;
 
@@ -141,19 +141,15 @@ parfor kkk = 1:(numRows*numCols)
         while true
             w_old = w_new;
             % 固定点迭代
-            w_new = Z * tanh(w_old' * Z)' / size(eY, 2) - mean(sech(w_old' * Z).^2) * w_old;
+            w_new = mean(Z.*tanh(w_old' * Z), 2) - mean(sech(w_old'*Z).^2).*w_old;
             % 正交化处理
-            w_new = w_new - B * B' * w_new;
+            w_new = w_new - B*B'*w_new;
             % 归一化处理
             w_new = w_new / norm(w_new);
             % 记录迭代次数
             iterCount = iterCount + 1;
-            if abs(w_new'*w_old - 1) < Tolx
+            if abs(w_new'*w_old - 1) < Tolx || iterCount >= 10000
                 disp(['compo=' num2str(i) '，一阶段迭代完成，本次迭代' num2str(iterCount) '次']);
-                break;
-            end
-            if iterCount == 10000
-                disp(['compo=' num2str(i) '，一阶段迭代达到上限，迭代终止']);
                 break;
             end
         end
@@ -168,7 +164,7 @@ parfor kkk = 1:(numRows*numCols)
         while true
             CoV_old = CoV_new;
             s = w_new' * Z;
-            [source_new, PT, CoV_new, ~] = blindDeconvPeakFinding(s, 20, 2, 20, 2);
+            [source_new, PT, CoV_new, ~] = blindDeconvPeakFinding(s, fsampu, 20, 2, 20, 2);
             w_new = mean(Z(:, PT), 2);
             countcount = countcount + 1;
             disp(['r=' num2str(r) '，c=' num2str(c) '，i=' num2str(i) '，二阶段迭代' num2str(countcount) '次']);
