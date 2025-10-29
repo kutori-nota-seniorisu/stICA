@@ -7,7 +7,8 @@ file_date = 'ICdata/R10/';
 
 % 导入数据
 load(['./Data/experiment/' file_date import_file_name '.mat'])
-TVIdata = v_2d_all;
+% TVIdata = v_2d_all(:, :, 5001:25000);
+TVIdata = cat(3, zeros(119, 128, 2), v_2d_all);
 params.dataSize = [size(TVIdata,1) size(TVIdata,2) size(TVIdata,3)];
 
 flag_segment = 0; % 是否分段处理
@@ -165,13 +166,13 @@ for seg_i = 1
         fun = @(Ws) f_function(Ws,U_hat,V_hat,params);
 
         %~ 共轭梯度法
-        % options = optimset('MaxIter', 250,'MaxFunEvals',4e4,'Display','iter','PlotFcns',@optimplotfval);
+        options = optimset('MaxIter', 250,'MaxFunEvals',4e4,'Display','iter','PlotFcns',@optimplotfval);
         disp('使用共轭梯度法');
-        options = optimoptions('fminunc',...
-            'MaxIterations',288000, ...
-            'MaxFunctionEvaluations',5000000, ...'OptimalityTolerance',1e-6, ...
-            'Display','iter', ...'PlotFcn','optimplotfirstorderopt'
-            'PlotFcn','optimplotfval');
+        % options = optimoptions('fminunc',...
+        %     'MaxIterations',28800, ...
+        %     'MaxFunctionEvaluations',500000, ...'OptimalityTolerance',1e-6, ...
+        %     'Display','iter', ...'PlotFcn','optimplotfirstorderopt'
+        %     'PlotFcn','optimplotfval');
         [Ws,fval,exitflag,output] = fminunc(fun,Ws,options);
         disp(output.message);
 
@@ -212,6 +213,21 @@ for seg_i = 1
         plot(-1*T(:,i));
         title(['Temporal #' num2str(i)]);
     end
+    sgtitle('S T')
+    set(gcf,'unit','normalized','position',[0.1,0.6,0.8,0.32]);
+
+    %%
+    figure;
+    for i=1:params.k
+        subplot(2,params.k,2*(i-1)+1)
+        imagesc(reshape(U_hat(:,i),[119 128]));
+        title(['Space #' num2str(i)]);
+        % colorbar
+        subplot(2,params.k,2*(i-1)+2)
+        plot(V_hat(:,i));
+        title(['Temporal #' num2str(i)]);
+    end
+    sgtitle('U V');
     set(gcf,'unit','normalized','position',[0.1,0.6,0.8,0.32]);
 
     %% 保存变量

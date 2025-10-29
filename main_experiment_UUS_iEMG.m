@@ -72,12 +72,12 @@ for level = 1%:4
 
                     % 归一化方式选择
                     % 按列归一化
-                    TVI_norm = normalize(TVI_data, 'range', [0 2]);
+                    % TVI_norm = normalize(TVI_data, 'range', [0 2]);
 
                     % Min-Max归一化（Min-Max Normalization）
-                    % TVI_data_max = max(max(TVI_data));
-                    % TVI_data_min = min(min(TVI_data));
-                    % TVI_norm = (TVI_data - TVI_data_min)/(TVI_data_max - TVI_data_min);
+                    TVI_data_max = max(max(TVI_data));
+                    TVI_data_min = min(min(TVI_data));
+                    TVI_norm = (TVI_data - TVI_data_min)/(TVI_data_max - TVI_data_min);
 
                     % NMF分解
                     % optNMF = statset('UseParallel', true);
@@ -112,7 +112,7 @@ for level = 1%:4
                             % 如果存在大于1.5的密度值，就对估计的概率密度函数进行归一化。
                             if ~isempty(find(fs_temp(:,i) > 1.5))
                                 fs(:,i) = normalize(fs_temp(:,i),'range');
-                                disp('归一化')
+                                disp('归一化');
                             else
                                 fs(:,i) = fs_temp(:,i);
                             end
@@ -207,7 +207,7 @@ for level = 1%:4
 
                 %% 数据后处理
                 % T=(T(2:end,:)-mean(T(2:end,:),1))./std(T(2:end,:),1); %~ 幅值标准化，第一行的值过大？
-                % T_norm=(T-mean(T))./std(T);
+                T_norm=(T-mean(T))./std(T);
 
                 %% 绘图
                 figure;
@@ -221,6 +221,20 @@ for level = 1%:4
                     title(['Temporal #' num2str(i)]);
                 end
                 set(gcf,'unit','normalized','position',[0.1,0.6,0.8,0.32]);
+
+                    %%
+                    figure;
+                    for i=1:params.k
+                        subplot(2,params.k,2*(i-1)+1)
+                        imagesc(reshape(U_hat(:,i),[395 128]));
+                        title(['Space #' num2str(i)]);
+                        % colorbar
+                        subplot(2,params.k,2*(i-1)+2)
+                        plot(V_hat(:,i));
+                        title(['Temporal #' num2str(i)]);
+                    end
+                    sgtitle('U V');
+                    set(gcf,'unit','normalized','position',[0.1,0.6,0.8,0.32]);
 
                 %% 保存变量
                 savepath = ['./Data/experiment/' file_date 'S1M1L' num2str(level) 'T' num2str(trial) 'P' num2str(probe) '_compo' num2str(params.k) '_' flag_decomp 'm.mat'];

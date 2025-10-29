@@ -12,6 +12,7 @@ addpath('F:/EEEMG/stICA/Func');
 % end
 fun = @(Ws) f_function(Ws,U_hat,V_hat,params);
 fval_CG = fun(Ws);
+%%
 for i = 1:1000
     % 这一步的步长越小，能产生的更优结果越多。
     % 但是同样的，步长越小，目标函数值的变化也越小。
@@ -25,7 +26,7 @@ for i = 1:1000
         % 第二步：调整目标函数值变化范围。
         % 如果函数变化很小，则可以认为已经收敛。
         % 如果函数变化值大于1e-3，基本可以认为还未收敛。
-        if abs(fval_test - fval_CG) > 1e-3
+        if abs(fval_test - fval_CG) > 1e-6
             disp(num2str(abs(fval_test - fval_CG)));
             break
         end

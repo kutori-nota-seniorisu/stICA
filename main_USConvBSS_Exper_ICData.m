@@ -67,19 +67,12 @@ numRows = (M-Row)/dRow+1;
 numCols = (N-Col)/dCol+1;
 
 % 存储空间预分配
-% DecompoResults = struct();
-% DecompoResults.B = cell(numRows, numCols);
-% DecompoResults.sources = cell(numRows, numCols);
-% DecompoResults.decompo_pulses = cell(numRows, numCols);
-% DecompoResults.CoV = cell(numRows, numCols);
-% DecompoResults.wFirst = cell(numRows, numCols);
-% DecompoResults.sourceFirst = cell(numRows, numCols);
-tmpB = cell(numRows, numCols);
-tmpSources = cell(numRows, numCols);
-tmpDecompoPulses = cell(numRows, numCols);
-tmpCoV = cell(numRows, numCols);
-tmpWFirst = cell(numRows, numCols);
-tmpSourceFirst = cell(numRows, numCols);
+tmpB = cell(numRows*numCols, 1);
+tmpSources = cell(numRows*numCols, 1);
+tmpDecompoPulses = cell(numRows*numCols, 1);
+tmpCoV = cell(numRows*numCols, 1);
+tmpWFirst = cell(numRows*numCols, 1);
+tmpSourceFirst = cell(numRows*numCols, 1);
 
 parfor kkk = 1:(numRows*numCols)
     r = ceil(kkk / numCols);
@@ -156,8 +149,6 @@ parfor kkk = 1:(numRows*numCols)
         % 一阶段结果存储
         sourcesFirst(:, i) = Z' * w_new;
         wFirst(:, i) = w_new;
-        % tmpSourceFirst{r, c}(:, i) = Z' * w_new;
-        % tmpWFirst{r, c}(:, i) = w_new;
 
         CoV_new = Inf;
         countcount = 0;
@@ -178,10 +169,6 @@ parfor kkk = 1:(numRows*numCols)
         source(:, i) = source_new;
         decompo_pulses{i} = PT;
         CoV(i) = CoV_new;
-        % tmpB{r, c}(:, i) = w_new;
-        % tmpSources{r, c}(:, i) = source_new;
-        % tmpDecompoPulses{r, c}{i} = PT;
-        % tmpCoV{r, c}(i) = CoV_new;
     end
 
     tmpB{kkk} = B;
@@ -195,17 +182,17 @@ end
 toc;
 disp(['数据迭代用时' num2str(toc)]);
 
-DecompoResults.B = reshape(tmpB, numRows, numCols);
-DecompoResults.sources = reshape(tmpSources, numRows, numCols);
-DecompoResults.decompo_pulses = reshape(tmpDecompoPulses, numRows, numCols);
-DecompoResults.CoV = reshape(tmpCoV, numRows, numCols);
-DecompoResults.wFirst = reshape(tmpWFirst, numRows, numCols);
-DecompoResults.sourceFirst = reshape(tmpSourceFirst, numRows, numCols);
+DecompoResults.B = reshape(tmpB, numRows, numCols)';
+DecompoResults.sources = reshape(tmpSources, numRows, numCols)';
+DecompoResults.decompo_pulses = reshape(tmpDecompoPulses, numRows, numCols)';
+DecompoResults.CoV = reshape(tmpCoV, numRows, numCols)';
+DecompoResults.wFirst = reshape(tmpWFirst, numRows, numCols)';
+DecompoResults.sourceFirst = reshape(tmpSourceFirst, numRows, numCols)';
 
 savepath = ['./Data/experiment/ICdata/R' num2str(Sub)];
 if ~exist(savepath, 'dir')
     mkdir(savepath);
     disp('创建路径！');
 end
-save([savepath '/USCBSS_compo25.mat'], 'DecompoResults', '-v7.3');
+save([savepath '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
 disp('数据保存完成！');

@@ -21,9 +21,36 @@ for mu = 1:muNum
     iPulses{mu} = round(data.data(find(data.data(:, 2) == mu), 1)' * 1000);
 end
 plotDecomps(iPulses, [], 1000, 0, 0, []);
-% xlim([3, 13])
+xlim([3, 13])
 % plotDecomps(decompoPulseAll, [], 1000, 0, 0, []);
 %% 绘制ICData的pulse，截取trigger后的30s数据，转化为对应于1000Hz的pulse
+% 时间成分滤波
+fsampu = 1000;
+[B,A] = butter(4,[5,25]/fsampu*2);
+T_filter = filtfilt(B,A,T);
+
+% z-score标准化
+T_mean = mean(T_filter);
+T_std = std(T_filter);
+T_norm = (T_filter-T_mean)./T_std;
+
+% 把处理后的时间成分画出来
+figure;
+for i = 1:size(T,2)
+    subplot(2,6,i);
+    plot(-T_norm(:,i));
+    title(['Time #' num2str(i)]);
+end
+sgtitle('滤波&标准化 时间成分');
+set(gcf,'unit','normalized','position',[0.05,0.5,0.9,0.3]);
+
+decompo_pulses = {};
+% 提取脉冲串
+for i = 1:size(T_norm,2)
+    [~, locs] = findpeaks(-T_norm(:,i),'MinPeakDistance',50,'MinPeakHeight',0.5);
+    decompo_pulses{i} = locs';
+end
+
 load('./Data/experiment/ICdata/R10/R10.mat');
 pulses = struct2cell(Data{2, 2});
 for iii = 1:length(pulses)
@@ -37,6 +64,25 @@ end
 plotDecomps(pulses_new, [], 1000, 0, 0, []);
 % xlim([12397,73661]/2048);
 yticks(1:length(pulses_new))
+%%
+matchresult_time_raw = [];
+% 计算RoA
+for i = 1:length(decompo_pulses)
+    for j = 1:length(pulses_new)
+        [Array1, Array2] = meshgrid(decompo_pulses{i}, pulses_new{j});
+        diff_values = Array1 - Array2;
+        valid_elements = diff_values <= 50 & diff_values >= -50;
+        count = sum(valid_elements(:));
+        r = count/(length(decompo_pulses{i})+length(pulses_new{j})-count);
+        if r > 1
+            r = 1;
+        end
+        spike_ROA_matrix(i,j) = r;
+        matchresult_time_raw(end+1,:) = [i, j, r];
+    end
+end
+% plotDecomps(pulses_new, [], 1000, 0, 0, []);
+plotDecomps({decompo_pulses{1},pulses_new{4}}, [], 1000, 0, 0, []);
 %% 绘制Data{1,2}每条通道的波形
 for i = 1:13
     figure;

@@ -68,20 +68,12 @@ for level = 1%:2
             numCols = (N-Col)/dCol+1;
 
             % 存储空间预分配
-            % DecompoResults = struct();
-            % DecompoResults.B = cell(numRows, numCols);
-            % DecompoResults.sources = cell(numRows, numCols);
-            % DecompoResults.decompo_pulses = cell(numRows, numCols);
-            % DecompoResults.CoV = cell(numRows, numCols);
-            % DecompoResults.wFirst = cell(numRows, numCols);
-            % DecompoResults.sourceFirst = cell(numRows, numCols);
-
-            % tmpB = cell(numRows, numCols);
-            % tmpSources = cell(numRows, numCols);
-            % tmpDecompoPulses = cell(numRows, numCols);
-            % tmpCoV = cell(numRows, numCols);
-            % tmpWFirst = cell(numRows, numCols);
-            % tmpSourceFirst = cell(numRows, numCols);
+            tmpB = cell(numRows*numCols, 1);
+            tmpSources = cell(numRows*numCols, 1);
+            tmpDecompoPulses = cell(numRows*numCols, 1);
+            tmpCoV = cell(numRows*numCols, 1);
+            tmpWFirst = cell(numRows*numCols, 1);
+            tmpSourceFirst = cell(numRows*numCols, 1);
 
             parfor kkk = 1:(numRows*numCols)
                 r = ceil(kkk / numCols);
@@ -141,19 +133,15 @@ for level = 1%:2
                     while true
                         w_old = w_new;
                         % 固定点迭代
-                        w_new = Z * tanh(w_old' * Z)' / size(eY, 2) - mean(sech(w_old' * Z).^2) * w_old;
+                        w_new = mean(Z.*tanh(w_old'*Z), 2) - mean(sech(w_old'*Z).^2).*w_old;
                         % 正交化处理
-                        w_new = w_new - B * B' * w_new;
+                        w_new = w_new - B*B'*w_new;
                         % 归一化处理
                         w_new = w_new / norm(w_new);
                         % 记录迭代次数
                         iterCount = iterCount + 1;
-                        if abs(w_new'*w_old - 1) < Tolx
+                        if abs(w_new'*w_old - 1) < Tolx || iterCount >= 10000
                             disp(['compo=' num2str(i) '，一阶段迭代完成，本次迭代' num2str(iterCount) '次']);
-                            break;
-                        end
-                        if iterCount == 10000
-                            disp(['compo=' num2str(i) '，一阶段迭代达到上限，迭代终止']);
                             break;
                         end
                     end
@@ -166,7 +154,7 @@ for level = 1%:2
                     while true
                         CoV_old = CoV_new;
                         s = w_new' * Z;
-                        [source_new, PT, CoV_new, ~] = blindDeconvPeakFinding(s, 20, 4, 20*2, 2);
+                        [source_new, PT, CoV_new, ~] = blindDeconvPeakFinding(s, fsampu, 20, 2, 20, 2);
                         w_new = mean(Z(:, PT), 2);
                         countcount = countcount + 1;
                         disp(['r=' num2str(r) '，c=' num2str(c) '，i=' num2str(i) '，二阶段迭代' num2str(countcount) '次']);
@@ -193,12 +181,12 @@ for level = 1%:2
             toc;
             disp(['数据迭代用时' num2str(toc)]);
 
-            DecompoResults.B = reshape(tmpB, numRows, numCols);
-            DecompoResults.sources = reshape(tmpSources, numRows, numCols);
-            DecompoResults.decompo_pulses = reshape(tmpDecompoPulses, numRows, numCols);
-            DecompoResults.CoV = reshape(tmpCoV, numRows, numCols);
-            DecompoResults.wFirst = reshape(tmpWFirst, numRows, numCols);
-            DecompoResults.sourceFirst = reshape(tmpSourceFirst, numRows, numCols);
+            DecompoResults.B = reshape(tmpB, numRows, numCols)';
+            DecompoResults.sources = reshape(tmpSources, numRows, numCols)';
+            DecompoResults.decompo_pulses = reshape(tmpDecompoPulses, numRows, numCols)';
+            DecompoResults.CoV = reshape(tmpCoV, numRows, numCols)';
+            DecompoResults.wFirst = reshape(tmpWFirst, numRows, numCols)';
+            DecompoResults.sourceFirst = reshape(tmpSourceFirst, numRows, numCols)';
 
             save(['./Data/experiment/24-06-21/UUS-iEMG/S1M1L' num2str(level) 'T' num2str(trial) 'P' num2str(pp) '_USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
         end
