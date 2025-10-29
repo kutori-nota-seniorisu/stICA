@@ -55,7 +55,7 @@ while true
     w_new = w_new / norm(w_new);
     % 记录迭代次数
     iterCount = iterCount + 1;
-    if abs(w_new'*w_old - 1) < Tolx || iterCount >= 100
+    if abs(w_new'*w_old - 1) < Tolx || iterCount >= 1000
         disp(['迭代完成，本次迭代' num2str(iterCount) '次']);
         break;
     end
