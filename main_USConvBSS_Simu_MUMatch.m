@@ -7,7 +7,7 @@ for i = 1:length(decompoPulseAll)
     for j = 1:length(ipulses)
         [Array1, Array2] = meshgrid(decompoPulseAll{i}, ipulses{j});
         diff_values = Array1 - Array2;
-        valid_elements = diff_values <= 15*2 & diff_values >= 0;
+        valid_elements = diff_values <= 15*(fsampu/1000) & diff_values >= 0;
         count = sum(valid_elements(:));
         r = count/(length(decompoPulseAll{i})+length(ipulses{j})-count);
         if r > 1
@@ -40,4 +40,4 @@ matchresult_time = array2table(matchresult_time, 'VariableNames', {'decomp', 're
 
 plotDecomps(ipulses, [], 2000, 0, 0, []);
 
-save(['./Results/datasets' datasets_num '_resultnew.mat'], 'decompoCoVAll', 'decompoPulseAll', 'decompoSourceFirstAll', 'decompoSourceAll', 'matchresult_time', 'matchresult_time_raw', 'spike_ROA_matrix');
+save(['./Results/datasets' datasets_num '_result.mat'], 'decompoCoVAll', 'decompoPulseAll', 'decompoSourceFirstAll', 'decompoSourceAll', 'matchresult_time', 'matchresult_time_raw', 'spike_ROA_matrix');
