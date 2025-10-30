@@ -19,13 +19,15 @@ end
 disp('开始数据预处理');
 tic;
 % 导入TVI数据
-Sub = 10;
+Sub = 7;
 tviFile = ['./Data/experiment/ICdata/R' num2str(Sub) '/v_2d_all.mat'];
 load(tviFile);
 TVIData = cat(3, zeros(119, 128, 2), v_2d_all);
+
 % filter the TVI data
-% TVIDataFilter = TVIData;
 TVIDataFilter = TVIData;
+% TVIDataFilter = v_2d_all;
+
 % 轴向0.5MHz低通滤波
 % [Be1, Ae1] = butter(4, 0.5/(7.7*4)*2, 'low');
 % parfor i = 1:size(TVIDataFilter, 3)
@@ -33,38 +35,31 @@ TVIDataFilter = TVIData;
 %     tmp = filtfilt(Be1, Ae1, tmp);
 %     TVIDataFilter(:, :, i) = tmp;
 % end
+
 % 时间5-100Hz带通滤波
-[Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
-for r = 1:size(TVIDataFilter, 1)
-    parfor c = 1:size(TVIDataFilter, 2)
-        tmp = squeeze(TVIDataFilter(r, c, :));
-        tmp = filtfilt(Be2, Ae2, tmp);
-        TVIDataFilter(r, c, :) = tmp;
-    end
-end
-% 对每一列降采样
-% TVITmp = zeros(128, size(TVIDataFilter, 2), size(TVIDataFilter, 3));
-% parfor i = 1:size(TVIDataFilter, 3)
-%     tmp = TVIDataFilter(:, :, i);
-%     tmp = resample(tmp, 128, 395);
-%     TVITmp(:, :, i) = tmp;
+% [Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
+% for r = 1:size(TVIDataFilter, 1)
+%     parfor c = 1:size(TVIDataFilter, 2)
+%         tmp = squeeze(TVIDataFilter(r, c, :));
+%         tmp = filtfilt(Be2, Ae2, tmp);
+%         TVIDataFilter(r, c, :) = tmp;
+%     end
 % end
-% TVIDataFilter = TVITmp;
-% clear TVITmp;
+
 toc;
 disp(['数据预处理用时' num2str(toc)]);
 
 %%
 disp('开始数据迭代');
 tic;
-[M, N, ~] = size(TVIDataFilter);
+[M, N, L] = size(TVIDataFilter);
 % 窗口大小
-Row = 7; Col = 8;
+Row = 10; Col = 10;
 % 窗口移动距离
-dRow = 4; dCol = 4;
+dRow = 5; dCol = 5;
 % 行数与列数
-numRows = (M-Row)/dRow+1;
-numCols = (N-Col)/dCol+1;
+numRows = ceil((M-Row)/dRow+1);
+numCols = ceil((N-Col)/dCol+1);
 
 % 存储空间预分配
 tmpB = cell(numRows*numCols, 1);
@@ -82,6 +77,9 @@ parfor kkk = 1:(numRows*numCols)
     disp(['row=' num2str(r) ',col=' num2str(c)]);
     winRow = (1:Row)+(r-1)*dRow;
     winCol = (1:Col)+(c-1)*dCol;
+   
+    winRow(winRow>M) = [];
+    winCol(winCol>N) = [];
 
     TVIDataWin = TVIDataFilter(winRow, winCol, :);
     TVIDataWin = reshape(TVIDataWin, Row*Col, []);
@@ -93,11 +91,10 @@ parfor kkk = 1:(numRows*numCols)
 
     % 3.数据拓展
     eY = extend(TVIDataWin, exFactor);
-    eY = eY(:, 1:size(TVIDataWin, 2));
+    eY = eY(:, 1:L);
 
     % 4.在每个维度上减去均值
     eY = stripmean(eY, 'st');
-    % L = size(eY, 2);
 
     % 5.白化
     % 协方差矩阵特征值分解
@@ -108,7 +105,7 @@ parfor kkk = 1:(numRows*numCols)
     % 选取贡献占比70%的特征值
     d = d ./ sum(d);
     cumuSum = cumsum(d);
-    ii = find(cumuSum > 0.9, 1);
+    ii = find(cumuSum > 0.7, 1);
     % 生成新的特征向量与特征值
     D_new = D(1:ii, 1:ii) - mean(diag(D(ii+1:end, ii+1:end))) * eye(ii);
     V_new = V(:, 1:ii);
@@ -134,14 +131,14 @@ parfor kkk = 1:(numRows*numCols)
         while true
             w_old = w_new;
             % 固定点迭代
-            w_new = mean(Z.*tanh(w_old' * Z), 2) - mean(sech(w_old'*Z).^2).*w_old;
+            w_new = mean(Z.*tanh(w_old'*Z), 2) - mean(sech(w_old'*Z).^2).*w_old;
             % 正交化处理
             w_new = w_new - B*B'*w_new;
             % 归一化处理
             w_new = w_new / norm(w_new);
             % 记录迭代次数
             iterCount = iterCount + 1;
-            if abs(w_new'*w_old - 1) < Tolx || iterCount >= 10000
+            if abs(w_new'*w_old - 1) < Tolx% || iterCount >= 10000
                 disp(['compo=' num2str(i) '，一阶段迭代完成，本次迭代' num2str(iterCount) '次']);
                 break;
             end
