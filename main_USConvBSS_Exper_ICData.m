@@ -83,7 +83,7 @@ parfor kkk = 1:(numRows*numCols)
     winCol(winCol>N) = [];
 
     TVIDataWin = TVIDataFilter(winRow, winCol, :);
-    TVIDataWin = reshape(TVIDataWin, Row*Col, []);
+    TVIDataWin = reshape(TVIDataWin, length(winRow)*length(winCol), []);
 
     % 2.沿着时间进行Z-score
     TVIDataWin = (TVIDataWin - mean(TVIDataWin, 2)) ./ std(TVIDataWin, 0, 2);
@@ -140,7 +140,7 @@ parfor kkk = 1:(numRows*numCols)
             w_new = w_new / norm(w_new);
             % 记录迭代次数
             iterCount = iterCount + 1;
-            if abs(w_new'*w_old - 1) < Tolx || iterCount >= 10000
+            if abs(w_new'*w_old - 1) < Tolx || iterCount >= 1000
                 disp(['r=' num2str(r) ',c=' num2str(c) ',i=' num2str(i) '，一阶段迭代完成，本次迭代' num2str(iterCount) '次']);
                 Msg{end+1} = sprintf('r=%d,c=%d,i=%d，一阶段迭代完成，本次迭代%d次', r, c, i, iterCount);
                 break;
