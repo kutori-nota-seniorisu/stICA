@@ -11,9 +11,9 @@ numCompo = 25;
 fsampu = 1000;
 
 %% 开启并行池
-if isempty(gcp('nocreate'))
-    parpool;
-end
+% if isempty(gcp('nocreate'))
+%     parpool;
+% end
 
 %% TVI数据预处理
 disp('开始数据预处理');
@@ -68,9 +68,8 @@ tmpDecompoPulses = cell(numRows*numCols, 1);
 tmpCoV = cell(numRows*numCols, 1);
 tmpWFirst = cell(numRows*numCols, 1);
 tmpSourceFirst = cell(numRows*numCols, 1);
-tmpMsg = cell(numRows*numCols, 1);
 
-parfor kkk = 1:(numRows*numCols)
+for kkk = 1:(numRows*numCols)
     r = ceil(kkk / numCols);
     c = mod(kkk-1, numCols) + 1;
 
@@ -124,7 +123,7 @@ parfor kkk = 1:(numRows*numCols)
     sourcesFirst = zeros(size(eY, 2), numCompo);
     wFirst = zeros(ii, numCompo);
 
-    Msg = {};
+    tmpMsg = {};
     % 7.迭代更新
     for i = 1:numCompo
         iterCount = 0;
@@ -142,7 +141,7 @@ parfor kkk = 1:(numRows*numCols)
             iterCount = iterCount + 1;
             if abs(w_new'*w_old - 1) < Tolx || iterCount >= 10000
                 disp(['r=' num2str(r) ',c=' num2str(c) ',i=' num2str(i) '，一阶段迭代完成，本次迭代' num2str(iterCount) '次']);
-                Msg{end+1} = sprintf('r=%d,c=%d,i=%d，一阶段迭代完成，本次迭代%d次', r, c, i, iterCount);
+                tmpMsg{end+1} = sprintf('r=%d,c=%d,i=%d，一阶段迭代完成，本次迭代%d次', r, c, i, iterCount);
                 break;
             end
         end
@@ -160,7 +159,7 @@ parfor kkk = 1:(numRows*numCols)
             countcount = countcount + 1;
             disp(['r=' num2str(r) ',c=' num2str(c) ',i=' num2str(i) '，二阶段迭代' num2str(countcount) '次']);
             if CoV_new > CoV_old
-                Msg{end+1} = sprintf('r=%d,c=%d,i=%d，二阶段迭代%d次', r, c, i, countcount);
+                tmpMsg{end+1} = sprintf('r=%d,c=%d,i=%d，二阶段迭代%d次', r, c, i, countcount);
                 break;
             end
         end
@@ -178,19 +177,17 @@ parfor kkk = 1:(numRows*numCols)
     tmpCoV{kkk} = CoV;
     tmpWFirst{kkk} = wFirst;
     tmpSourceFirst{kkk} = sourcesFirst;
-    tmpMsg{kkk} = Msg;
 end
 
 toc;
 disp(['数据迭代用时' num2str(toc)]);
 
-DecompoResults.B = reshape(tmpB, numCols, numRows)';
-DecompoResults.sources = reshape(tmpSources, numCols, numRows)';
-DecompoResults.decompo_pulses = reshape(tmpDecompoPulses, numCols, numRows)';
-DecompoResults.CoV = reshape(tmpCoV, numCols, numRows)';
-DecompoResults.wFirst = reshape(tmpWFirst, numCols, numRows)';
-DecompoResults.sourceFirst = reshape(tmpSourceFirst, numCols, numRows)';
-DecompoResults.Msg = reshape(tmpMsg, numCols, numRows)';
+DecompoResults.B = reshape(tmpB, numRows, numCols)';
+DecompoResults.sources = reshape(tmpSources, numRows, numCols)';
+DecompoResults.decompo_pulses = reshape(tmpDecompoPulses, numRows, numCols)';
+DecompoResults.CoV = reshape(tmpCoV, numRows, numCols)';
+DecompoResults.wFirst = reshape(tmpWFirst, numRows, numCols)';
+DecompoResults.sourceFirst = reshape(tmpSourceFirst, numRows, numCols)';
 
 savepath = ['./Data/experiment/ICdata/R' num2str(Sub)];
 if ~exist(savepath, 'dir')
