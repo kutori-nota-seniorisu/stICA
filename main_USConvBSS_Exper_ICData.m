@@ -15,13 +15,16 @@ if isempty(gcp('nocreate'))
     parpool;
 end
 
-%% TVI数据预处理
-disp('开始数据预处理');
-tic;
 % 导入TVI数据
-Sub = 7;
+for Sub = [11,12,14]
+
+disp(['Sub=' num2str(Sub)]);
 tviFile = ['./Data/experiment/ICdata/R' num2str(Sub) '/v_2d_all.mat'];
 load(tviFile);
+
+% TVI数据预处理
+disp('开始数据预处理');
+tic;
 TVIData = cat(3, zeros(119, 128, 2), v_2d_all);
 
 % filter the TVI data
@@ -199,3 +202,5 @@ if ~exist(savepath, 'dir')
 end
 save([savepath '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
 disp('数据保存完成！');
+
+end
