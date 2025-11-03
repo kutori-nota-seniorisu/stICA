@@ -16,7 +16,7 @@ if isempty(gcp('nocreate'))
 end
 
 % 导入TVI数据
-for Sub = [11,12,14]
+for Sub = [15,16]
 
 disp(['Sub=' num2str(Sub)]);
 tviFile = ['./Data/experiment/ICdata/R' num2str(Sub) '/v_2d_all.mat'];
@@ -127,7 +127,8 @@ parfor kkk = 1:(numRows*numCols)
     sourcesFirst = zeros(size(eY, 2), numCompo);
     wFirst = zeros(ii, numCompo);
 
-    Msg = {};
+    % Msg = {};
+    
     % 7.迭代更新
     for i = 1:numCompo
         iterCount = 0;
@@ -145,7 +146,7 @@ parfor kkk = 1:(numRows*numCols)
             iterCount = iterCount + 1;
             if abs(w_new'*w_old - 1) < Tolx || iterCount >= 1000
                 disp(['r=' num2str(r) ',c=' num2str(c) ',i=' num2str(i) '，一阶段迭代完成，本次迭代' num2str(iterCount) '次']);
-                Msg{end+1} = sprintf('r=%d,c=%d,i=%d，一阶段迭代完成，本次迭代%d次', r, c, i, iterCount);
+                % Msg{end+1} = sprintf('r=%d,c=%d,i=%d，一阶段迭代完成，本次迭代%d次', r, c, i, iterCount);
                 break;
             end
         end
@@ -163,7 +164,7 @@ parfor kkk = 1:(numRows*numCols)
             countcount = countcount + 1;
             disp(['r=' num2str(r) ',c=' num2str(c) ',i=' num2str(i) '，二阶段迭代' num2str(countcount) '次']);
             if CoV_new > CoV_old
-                Msg{end+1} = sprintf('r=%d,c=%d,i=%d，二阶段迭代%d次', r, c, i, countcount);
+                % Msg{end+1} = sprintf('r=%d,c=%d,i=%d，二阶段迭代%d次', r, c, i, countcount);
                 break;
             end
         end
@@ -181,7 +182,7 @@ parfor kkk = 1:(numRows*numCols)
     tmpCoV{kkk} = CoV;
     tmpWFirst{kkk} = wFirst;
     tmpSourceFirst{kkk} = sourcesFirst;
-    tmpMsg{kkk} = Msg;
+    % tmpMsg{kkk} = Msg;
 end
 
 toc;
@@ -193,7 +194,7 @@ DecompoResults.decompo_pulses = reshape(tmpDecompoPulses, numCols, numRows)';
 DecompoResults.CoV = reshape(tmpCoV, numCols, numRows)';
 DecompoResults.wFirst = reshape(tmpWFirst, numCols, numRows)';
 DecompoResults.sourceFirst = reshape(tmpSourceFirst, numCols, numRows)';
-DecompoResults.Msg = reshape(tmpMsg, numCols, numRows)';
+% DecompoResults.Msg = reshape(tmpMsg, numCols, numRows)';
 
 savepath = ['./Data/experiment/ICdata/R' num2str(Sub)];
 if ~exist(savepath, 'dir')
