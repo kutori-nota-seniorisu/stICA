@@ -1,4 +1,51 @@
 clear; clc; close all;
+
+%%
+% R3 32451 - 93725
+fsampu = 1000;
+sub = '4';
+load(['./Data/experiment/ICdata/R' sub '/R' sub '.mat']);
+% 计算范围
+trigger = Data{1, 2}(end, :);
+fallingEdges = find(diff(trigger) < -10000);
+minInterval = 100;
+if ~isempty(fallingEdges)
+    mergedEdges = fallingEdges(1);
+    for i = 2:length(fallingEdges)
+        if fallingEdges(i) - mergedEdges(end) > minInterval
+            mergedEdges(end+1) = fallingEdges(i);
+        end
+    end
+else
+    mergedEdges = [];
+end
+% 取前两个下降沿
+if length(mergedEdges) >= 2
+    edge1 = mergedEdges(1)+1;
+    edge2 = mergedEdges(2)+1;
+else
+    error('未检测到足够的下降沿');
+end
+figure;
+plot(trigger);
+hold on;
+plot(edge1, trigger(edge1), 'ro');
+plot(edge2, trigger(edge2), 'ro');
+
+pulses = struct2cell(Data{2, 2});
+for iii = 1:length(pulses)
+    % 需要对原始数据转置一下，变成行的形式，调用plotDecomps时才不会绘制出错
+    tmp = pulses{iii};
+    tmp = tmp(tmp>=edge1 & tmp<=edge2);
+    tmp = tmp - edge1;
+    tmp = round(tmp/2048*fsampu);
+    pulsesRef{iii} = tmp';
+end
+plotDecomps(pulsesRef, [], fsampu, 0, 0, []);
+% xlim([12397,73661]/2048);
+yticks(1:length(pulsesRef))
+save(['./Data/experiment/ICdata/R' sub '/pulsesRef.mat'], 'pulsesRef');
+
 %% 使用时间源成分进行CBSS
 datasets_num = '2';
 % 拓展因子

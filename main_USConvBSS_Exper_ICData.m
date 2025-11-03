@@ -16,7 +16,7 @@ if isempty(gcp('nocreate'))
 end
 
 % 导入TVI数据
-for Sub = [15,16]
+for Sub = [17,18]
 
 disp(['Sub=' num2str(Sub)]);
 tviFile = ['./Data/experiment/ICdata/R' num2str(Sub) '/v_2d_all.mat'];
