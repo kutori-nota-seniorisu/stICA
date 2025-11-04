@@ -3,7 +3,7 @@ clear; clc; close all;
 %%
 % R3 32451 - 93725
 fsampu = 1000;
-sub = '4';
+sub = '5';
 load(['./Data/experiment/ICdata/R' sub '/R' sub '.mat']);
 % 计算范围
 trigger = Data{1, 2}(end, :);
@@ -36,7 +36,11 @@ pulses = struct2cell(Data{2, 2});
 for iii = 1:length(pulses)
     % 需要对原始数据转置一下，变成行的形式，调用plotDecomps时才不会绘制出错
     tmp = pulses{iii};
+    if length(tmp) < 3
+        continue;
+    end
     tmp = tmp(tmp>=edge1 & tmp<=edge2);
+    tmp(1) = [];
     tmp = tmp - edge1;
     tmp = round(tmp/2048*fsampu);
     pulsesRef{iii} = tmp';

@@ -1,6 +1,7 @@
 %% 仿真数据Pulse筛选
 clear; clc; close all;
-load('./Data/experiment/ICdata/R4/USCBSS_compo25.mat');
+Sub = '5';
+load(['./Data/experiment/ICdata/R' Sub '/USCBSS_compo25.mat']);
 % load('./Data/experiment/24-06-21/UUS-iEMG/S1M1L2T1P2_USCBSS_compo25.mat');
 % datasets_num = '10';
 % load(['./Data/simulation/datasets' datasets_num '/USCBSS_compo10.mat']);
@@ -61,12 +62,15 @@ crossCorrMatrix = zeros(numSources, numSources);
 for i = 1:numSources
     for j = i+1:numSources  % 只计算上三角部分，避免重复
         % 计算互相关系数，考虑时移
-        [corrVals, ~] = xcorr(sources(:, i), sources(:, j), 'coeff');
-
+        % [corrVals, ~] = xcorr(sources(:, i), sources(:, j), 'coeff');
         % 取绝对值最大值（考虑正负相关）
-        maxCorr = max(abs(corrVals));
-        crossCorrMatrix(i,j) = maxCorr;
-        crossCorrMatrix(j,i) = maxCorr;  % 对称矩阵
+        % maxCorr = max(abs(corrVals));
+        % crossCorrMatrix(i,j) = maxCorr;
+        % crossCorrMatrix(j,i) = maxCorr;  % 对称矩阵
+
+        [corrVals, ~] = corr(sources(:, i), sources(:, j));
+        crossCorrMatrix(i,j) = abs(corrVals);
+        crossCorrMatrix(j,i) = abs(corrVals);
     end
 end
 
@@ -80,7 +84,7 @@ for i = 1:numSources
     end
 
     for j = i+1:numSources
-        if ~selectedIndices(j) || processedPairs(i,j)  % 跳过已删除或已处理的配对
+        if ~selectedIndices(j)% || processedPairs(i,j)  % 跳过已删除或已处理的配对
             continue;
         end
 
@@ -95,8 +99,8 @@ for i = 1:numSources
             end
         end
 
-        processedPairs(i,j) = true;
-        processedPairs(j,i) = true;
+        % processedPairs(i,j) = true;
+        % processedPairs(j,i) = true;
     end
 end
 
@@ -124,11 +128,11 @@ end
 fprintf('\n');
 
 %% 脉冲串匹配
-load('./Data/experiment/ICdata/R4/pulsesRef.mat');
+load(['./Data/experiment/ICdata/R' Sub '/pulsesRef.mat']);
 % 匹配容差为5ms
 winSize = 5/1000*fsampu;
-% lim=60ms，转换成样本点作为输入参数
-lim = 60/1000*fsampu;
+% lim=100ms，转换成样本点作为输入参数
+lim = 100/1000*fsampu;
 
 matchResultRaw = [];
 

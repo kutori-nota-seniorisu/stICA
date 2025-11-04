@@ -4,7 +4,7 @@ function [source, PT, CoV, w_new] = blindDeconvPeakFinding(S, fs, R, nMAD, MPD, 
 % 这是一种采用卷积盲源分离获取spike train的方法，
 % 输入为估计源，可以是ICA后得到的单个时间成分，也可以是对USS进行CBSS后的粗略估计源
 %
-% 使用stICA后的成分作为输入时，使用log(cosh(x))效果更好，1/6*x^3的效果差到爆炸
+% 
 %
 % Inputs:
 %   S - estimated source
@@ -46,7 +46,6 @@ while true
     % 固定点迭代
     if mode == 1
         w_new = mean(Z.*log(cosh(w_old'*Z)), 2) - mean(tanh(w_old'*Z)).*w_old;
-        % w_new = Z * tanh(w_old' * Z)' / L - mean(sech(w_old' * Z).^2) * w_old;
     elseif mode == 2
         % w_new = Z * 1/6 * (w_old' * Z).^3' / size(eS, 2) - mean(1/2*(w_old' * Z).^2) * w_old;
         w_new = mean(Z.*1/2.*(w_old'*Z).^2, 2) - mean(w_old'*Z).*w_old;
