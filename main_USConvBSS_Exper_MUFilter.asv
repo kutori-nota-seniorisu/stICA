@@ -19,11 +19,6 @@ for r = 1:23
         tmpSourcesRaw = DecompoResults.sourceFirst{r, c};
         tmpCoV = DecompoResults.CoV{r, c};
         for mu = 1:length(tmpPulses)
-            ax=figure;
-            subplot(2,1,1);
-            plot(tmpSourcesRaw(:,mu));
-            subplot(2,1,2);
-            plot(tmpSources(:,mu));
             % 计算MAD，单位为ms
             MAD = mad(diff(tmpPulses{mu}/fsampu*1000));
             % 计算能量占比
@@ -193,7 +188,6 @@ end
 
 matchResultRaw = array2table(matchResultRaw, 'VariableNames', {'ref', 'decomp', 'Lag', 'TP', 'FP', 'FN', 'match ratio', 'RoA'});
 
-plotDecomps({pulsesRef{1},decompoMUFiltered(2).pulse}, [], 1000, 0, 0, []);
 %%
 for i = 4:length(pulsesRef)
     if length(pulsesRef{i}) < 3

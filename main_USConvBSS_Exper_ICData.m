@@ -40,14 +40,14 @@ TVIDataFilter = TVIData;
 % end
 
 % 时间5-100Hz带通滤波
-% [Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
-% for r = 1:size(TVIDataFilter, 1)
-%     parfor c = 1:size(TVIDataFilter, 2)
-%         tmp = squeeze(TVIDataFilter(r, c, :));
-%         tmp = filtfilt(Be2, Ae2, tmp);
-%         TVIDataFilter(r, c, :) = tmp;
-%     end
-% end
+[Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
+for r = 1:size(TVIDataFilter, 1)
+    parfor c = 1:size(TVIDataFilter, 2)
+        tmp = squeeze(TVIDataFilter(r, c, :));
+        tmp = filtfilt(Be2, Ae2, tmp);
+        TVIDataFilter(r, c, :) = tmp;
+    end
+end
 
 toc;
 disp(['数据预处理用时' num2str(toc)]);
@@ -144,7 +144,7 @@ parfor kkk = 1:(numRows*numCols)
             w_new = w_new / norm(w_new);
             % 记录迭代次数
             iterCount = iterCount + 1;
-            if abs(w_new'*w_old - 1) < Tolx% || iterCount >= 1000
+            if abs(w_new'*w_old - 1) < Tolx || iterCount >= 1000
                 disp(['r=' num2str(r) ',c=' num2str(c) ',i=' num2str(i) '，一阶段迭代完成，本次迭代' num2str(iterCount) '次']);
                 Msg{end+1} = sprintf('r=%d,c=%d,i=%d，一阶段迭代完成，本次迭代%d次', r, c, i, iterCount);
                 break;
@@ -201,7 +201,7 @@ if ~exist(savepath, 'dir')
     mkdir(savepath);
     disp('创建路径！');
 end
-save([savepath '/test_USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
+save([savepath '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
 disp('数据保存完成！');
 
 end

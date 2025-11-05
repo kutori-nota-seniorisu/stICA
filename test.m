@@ -3,7 +3,7 @@ clear; clc; close all;
 %%
 % R3 32451 - 93725
 fsampu = 1000;
-sub = '5';
+sub = '16';
 load(['./Data/experiment/ICdata/R' sub '/R' sub '.mat']);
 % 计算范围
 trigger = Data{1, 2}(end, :);
@@ -32,6 +32,7 @@ hold on;
 plot(edge1, trigger(edge1), 'ro');
 plot(edge2, trigger(edge2), 'ro');
 
+%%
 pulses = struct2cell(Data{2, 2});
 for iii = 1:length(pulses)
     % 需要对原始数据转置一下，变成行的形式，调用plotDecomps时才不会绘制出错
@@ -39,10 +40,11 @@ for iii = 1:length(pulses)
     if length(tmp) < 3
         continue;
     end
+    tmp((diff(tmp)<0))=[];
     tmp = tmp(tmp>=edge1 & tmp<=edge2);
-    tmp(1) = [];
-    tmp = tmp - edge1;
-    tmp = round(tmp/2048*fsampu);
+    % tmp(1) = [];
+    % tmp = tmp - edge1;
+    % tmp = round(tmp/2048*fsampu);
     pulsesRef{iii} = tmp';
 end
 plotDecomps(pulsesRef, [], fsampu, 0, 0, []);
@@ -50,6 +52,19 @@ plotDecomps(pulsesRef, [], fsampu, 0, 0, []);
 yticks(1:length(pulsesRef))
 save(['./Data/experiment/ICdata/R' sub '/pulsesRef.mat'], 'pulsesRef');
 
+%%
+load(['./Data/experiment/ICdata/R' sub '/output_info.mat']);
+load(['./Data/experiment/ICdata/R' sub '/Vel_globalTime.mat']);
+pulsesRef = {};
+for mu = 1:length(output_info)
+    if length(output_info(mu).MUFiring_in_region) < 10
+        continue;
+    end
+    pulsesRef{end+1} = round((output_info(mu).MUFiring_in_region' + output_info(mu).EMG_shift + 1 - Vel_globalTime(1)*2048)/2048*1000);
+end
+plotDecomps(pulsesRef, [], fsampu, 0, 0, []);
+yticks(1:length(pulsesRef))
+save(['./Data/experiment/ICdata/R' sub '/pulsesRef.mat'], 'pulsesRef');
 %% 使用时间源成分进行CBSS
 datasets_num = '2';
 % 拓展因子
