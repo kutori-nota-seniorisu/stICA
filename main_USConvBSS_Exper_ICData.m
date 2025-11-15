@@ -32,14 +32,14 @@ for Sub = [16]
     % TVIDataFilter = v_2d_all;
 
     % 时间5-100Hz带通滤波
-    [Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
-    for r = 1:size(TVIDataFilter, 1)
-        parfor c = 1:size(TVIDataFilter, 2)
-            tmp = squeeze(TVIDataFilter(r, c, :));
-            tmp = filtfilt(Be2, Ae2, tmp);
-            TVIDataFilter(r, c, :) = tmp;
-        end
-    end
+    % [Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
+    % for r = 1:size(TVIDataFilter, 1)
+    %     parfor c = 1:size(TVIDataFilter, 2)
+    %         tmp = squeeze(TVIDataFilter(r, c, :));
+    %         tmp = filtfilt(Be2, Ae2, tmp);
+    %         TVIDataFilter(r, c, :) = tmp;
+    %     end
+    % end
 
     toc;
     disp(['数据预处理用时' num2str(toc)]);
@@ -151,7 +151,7 @@ for Sub = [16]
             while true
                 CoV_old = CoV_new;
                 s = w_new' * Z;
-                [source_new, PT, CoV_new, ~] = blindDeconvPeakFinding(s, fsampu, 20, 2, 20, 2);
+                [source_new, PT, CoV_new, ~] = blindDeconvPeakFinding(s, fsampu, 20, 2, 60, 2);
                 w_new = mean(Z(:, PT), 2);
                 countcount = countcount + 1;
                 disp(['r=' num2str(r) ',c=' num2str(c) ',i=' num2str(i) '，二阶段迭代' num2str(countcount) '次']);
@@ -193,7 +193,7 @@ for Sub = [16]
         mkdir(savepath);
         disp('创建路径！');
     end
-    save([savepath '/USCBSS_compo' num2str(numCompo) '_filter.mat'], 'DecompoResults', '-v7.3');
+    save([savepath '/USCBSS_compo' num2str(numCompo) '_MPD60.mat'], 'DecompoResults', '-v7.3');
     disp('数据保存完成！');
 
 end
