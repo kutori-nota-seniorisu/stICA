@@ -8,22 +8,18 @@ function [MatchResult,MatchResult_raw] = PulseMatch(Pulses1,Pulses2,thresh,fsamp
 % OUTPUT
 %   MatchResult: a table containing matching results
 % 
-% first created on 2019-1-23 by CC
-% 通过这个函数计算得到的MatchResult的Lag，表示的是Pulse2相对Pulse1的位移，Lag大于零表示Pulse2向右平移。
+% frist created on 2019-1-23 by CC
 
 % dIPI = round(0.0005*fsamp);
 
+% dIPI = round(0.0005*fsamp);
 if nargin<3
     thresh = 0.3;
     fsamp = 2048;
 end
-
 % dIPI = round(0.005*fsamp);
-
-% RoA计算容差为60ms
-tolRoA = 60;
-dIPI=round(tolRoA/2/1000*fsamp);
-
+% lim = round(0.05*fsamp);
+dIPI=round(0.005*fsamp);
 lim=round(0.05*fsamp);
 
 
@@ -31,7 +27,6 @@ MatchResult_raw = [];
 
 num1 = length(Pulses1);
 % num2 = length(Pulses2);
-% 遍历Pulses1的每个元素，与Pulses2进行匹配。
 for p1 = 1:num1
     tmpp1 = Pulses1{p1};
     [dS,dSen,dLag] = sortIPTcorr(Pulses2,tmpp1,dIPI,[],thresh);% {pPulse{Ind}} or pPulses(Ind) to ensure the input is a cell 
@@ -39,7 +34,6 @@ for p1 = 1:num1
     if isempty(tmpInd)
         continue;
     end
-    % 计算RoA，并存储
     for i = tmpInd'
         [rr,tmpLag] = RoA(tmpp1,Pulses2{i},lim,dIPI);
 %         MatchResult_raw(end+1,:) = [p1,i,dSen(i),rr,dLag(i)];
@@ -58,17 +52,14 @@ MatchResult = MatchResult_raw;
 for mu1 = 1:num1
     tmpInd = find(MatchResult(:,1)==mu1);
     if length(tmpInd)>1
-        % 找到RoA最大的一个匹配，并把其他匹配删去
         [~,tmpInd2] = max(MatchResult(tmpInd,4));
         deleteInd = setdiff(1:length(tmpInd),tmpInd2);
         MatchResult(tmpInd(deleteInd),:) = [];
     end
 end
-
 for mu2 = 1:length(Pulses2)
     tmpInd = find(MatchResult(:,2)==mu2);
     if length(tmpInd)>1
-        % 找到RoA最大的一个匹配，并把其他匹配删去
         [~,tmpInd2] = max(MatchResult(tmpInd,4));
         deleteInd = setdiff(1:length(tmpInd),tmpInd2);
         MatchResult(tmpInd(deleteInd),:) = [];

@@ -70,10 +70,10 @@ source = w_new' * Z;
 % source = source * (1 - 2 * (abs(max(source)) <= abs(min(source))));
 MAD = mean(abs(source - mean(source)));
 [~, PT] = findpeaks(source, 'MinPeakHeight', nMAD*MAD, 'MinPeakDistance', MPD*(fs/1000));
-if isempty(PT)
-    CoV = Inf;
-    % save('wrong.mat', 'source', 'w_new');
-    return;
-end
+% if isempty(PT)
+%     CoV = Inf;
+%     % save('wrong.mat', 'source', 'w_new');
+%     return;
+% end
 % 计算变异系数
 CoV = std(diff(PT)) / mean(diff(PT));

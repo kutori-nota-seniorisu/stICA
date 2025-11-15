@@ -1,29 +1,24 @@
 %% 仿真数据Pulse筛选
 clear; clc; close all;
+addpath('./Func');
 Sub = '16';
+% 导入数据
 load(['./Data/experiment/ICdata/R' Sub '/USCBSS_compo25.mat']);
-% load('./Data/experiment/24-06-21/UUS-iEMG/S1M1L2T1P2_USCBSS_compo25.mat');
-% datasets_num = '10';
-% load(['./Data/simulation/datasets' datasets_num '/USCBSS_compo10.mat']);
-fsampu = 1000;
 %% step1 以MAD和能量占比筛选
 decompoMURaw = struct('row', {}, 'col', {}, 'pulse', {}, 'source', {}, 'CoV', {});
-% L = 30000;
+fsampu = 1000;
 % decompoSources = [];
 % 计算放电串的MAD，大于25ms则去除
 % 计算估计源在6-14Hz内的能量占比，小于20%则去除
-for r = 1:23
+for r = 16:23
     for c = 1:25
         tmpPulses = DecompoResults.decompo_pulses{r, c};
         tmpSources = DecompoResults.sources{r, c};
         tmpSourcesRaw = DecompoResults.sourceFirst{r, c};
         tmpCoV = DecompoResults.CoV{r, c};
+
+        ax = figure;
         for mu = 1:length(tmpPulses)
-            ax=figure;
-            subplot(2,1,1);
-            plot(tmpSourcesRaw(:,mu));
-            subplot(2,1,2);
-            plot(tmpSources(:,mu));
             % 计算MAD，单位为ms
             MAD = mad(diff(tmpPulses{mu}/fsampu*1000));
             % 计算能量占比
@@ -36,6 +31,23 @@ for r = 1:23
             energyTotal = trapz(freq(idxTotal), psd(idxTotal));
             energyRatio = energyInBand / energyTotal * 100;
 
+            subplot(10,5,mu+floor((mu-1)/5)*5);
+            plot(tmpSourcesRaw(:,mu));
+            xlim([0,4000]);
+            xticks(0:1000:4000);
+            xticklabels(0:1:4);
+            xlabel('t/s'); ylabel('amplitude');
+            title(['mu=' num2str(mu) '一阶段迭代'])
+
+            subplot(10,5,mu+ceil(mu/5)*5);
+            plot(tmpSources(:,mu));
+            xlim([0,4000]);
+            xticks(0:1000:4000);
+            xticklabels(0:1:4);
+            xlabel('t/s'); ylabel('amplitude');
+            title(['mu=' num2str(mu) '二阶段迭代，MAD=' num2str(MAD) ',ER=' num2str(energyRatio) '%']);
+
+            % L = 30000;
             % tmp = abs(fft(tmpSources(:, mu))/L);
             % sFFT = tmp(1:L/2+1);
             % sFFT(2:end-1) = 2*sFFT(2:end-1);
@@ -54,6 +66,7 @@ for r = 1:23
             % if energyRatio < 20
             %     disp(['r=' num2str(r) ',c=' num2str(c) ',mu=' num2str(mu) '能量占比过小']);
             % end
+
             if MAD <= 25 && energyRatio >= 20
                 disp(['r=' num2str(r) ',c=' num2str(c) ',mu=' num2str(mu) '保留！']);
                 decompoMURaw(end+1).MU = mu;
@@ -67,6 +80,10 @@ for r = 1:23
                 % decompoSources(:, end+1) = tmpSources(:, mu);
             end
         end
+
+        set(gcf,'unit','normalized','position',[0,0,1,1]);
+        saveas(ax, ['./Results/R' Sub '/r' num2str(r) 'c' num2str(c)], 'png');
+        close;
     end
 end
 %% step2 以互相关系数为标准去重
@@ -155,27 +172,32 @@ fprintf('\n');
 
 %% 脉冲串匹配
 load(['./Data/experiment/ICdata/R' Sub '/pulsesRef.mat']);
-% 匹配容差为5ms
-winSize = 5/1000*fsampu;
+% 匹配容差为0~5ms
+winSize = [0, 5]/1000*fsampu;
 % lim=100ms，转换成样本点作为输入参数
 lim = 100/1000*fsampu;
 
-matchResultRaw = [];
+% decompoPulses = {};
+% for i = 1:length(decompoMUFiltered)
+%     decompoPulses{i} = decompoMUFiltered(i).pulse;
+% end
+% [matchResult, matchResultRaw] = PulseMatch(decompoPulses, pulsesRef, 0.3, 1000);
 
+matchResultRaw = [];
 for i = 1:length(pulsesRef)
-    if length(pulsesRef{i}) < 3
+    if length(pulsesRef{i}) < 150 || length(pulsesRef{i}) > 450
         disp(['i=' num2str(i) '参考脉冲序列无效']);
         continue;
     end
     for j = 1:length(decompoMUFiltered)
         xcor = fxcorr(pulsesRef{i}, decompoMUFiltered(j).pulse, lim);
-        winSums = zeros(1, 2*lim+1-winSize);
-        for k = 1:2*lim+1-winSize
-            winSums(k) = sum(xcor(k:k+winSize));
+        winSums = zeros(1, 2*lim+1-(winSize(2)-winSize(1)));
+        for k = 1:2*lim+1-(winSize(2)-winSize(1))
+            winSums(k) = sum(xcor(k:k+(winSize(2)-winSize(1))));
         end
         [maxMatchSum, maxIdx] = max(winSums);
         % 最佳匹配的时移
-        Lag = maxIdx - lim - 1;
+        Lag = maxIdx - winSize(1) - lim - 1;
         % 匹配上的脉冲个数，真阳性
         TP = maxMatchSum;
         % 假阳性
@@ -183,27 +205,78 @@ for i = 1:length(pulsesRef)
         % 假阴性
         FN = length(pulsesRef{i}) - maxMatchSum;
         % 匹配率
-        matchRatio = TP / length(pulsesRef{i}) * 100;
+        matchRatio = TP / (TP + FN) * 100;
         % RoA
-        RoA = TP / (TP + FP + FN);
+        rr = TP / (TP + FP + FN);
+        % rr = RoA(decompoMUFiltered(j).pulse, pulsesRef{i}, 100, 5);
 
-        matchResultRaw(end+1, :) = [i, j, Lag, TP, FP, FN, matchRatio, RoA];
+        matchResultRaw(end+1, :) = [i, j, Lag, TP, FP, FN, matchRatio, rr];
     end
 end
 
 matchResultRaw = array2table(matchResultRaw, 'VariableNames', {'ref', 'decomp', 'Lag', 'TP', 'FP', 'FN', 'match ratio', 'RoA'});
 
-plotDecomps({pulsesRef{1},decompoMUFiltered(2).pulse}, [], 1000, 0, 0, []);
-%%
-for i = 4:length(pulsesRef)
-    if length(pulsesRef{i}) < 3
-        disp(['i=' num2str(i) '参考脉冲序列无效']);
-        continue;
+%% 计算筛选后MU的PNR
+for sub = [3,4,5,7,10,11,12,14,15,16,17,18]
+    % 导入数据
+    load(['./Data/experiment/ICdata/R' num2str(sub) '/USCBSS_decomp_result.mat']);
+    PNRs = [];
+    Rows = [];
+    for i = 1:length(decompoMUFiltered)
+        IPT = decompoMUFiltered(i).source;
+        pulse = decompoMUFiltered(i).pulse;
+        % 10*log10(mean(tT(compInd).^2)/mean(tT(setdiff([1:length(tT)],compInd)).^2))
+        Rows(i) = decompoMUFiltered(i).row;
+        PNRs(i) = 10*log10( mean( IPT(pulse).^2 ) / mean( IPT(setdiff(1:length(IPT), pulse)).^2 ) );
     end
-    for j = 1:length(decompoMUFiltered)
-        [Array1, Array2] = meshgrid(pulsesRef{i}, decompoMUFiltered(j).pulse);
-        diff_values = Array1 - Array2;
-        [minVals, minIdx] = min(abs(diff_values));
+    save(['./Data/experiment/ICdata/R' num2str(sub) '/PNRs.mat'], 'PNRs', 'Rows');
+end
+
+PNRsAll = [];
+RowsAll = [];
+for sub = [3,4,5,7,10,11,12,14,15,16,17,18]
+    % 导入数据
+    load(['./Data/experiment/ICdata/R' num2str(sub) '/PNRs.mat']);
+    PNRsAll = [PNRsAll, PNRs];
+    RowsAll = [RowsAll, Rows];
+end
+mean(PNRsAll)
+std(PNRsAll)
+median(PNRsAll)
+
+%% 保存结果
+save(['./Data/experiment/ICdata/R' Sub '/USCBSS_decomp_result.mat'], 'decompoMURaw', 'decompoMUFiltered', 'matchResultRaw');
+
+% plotDecomps({pulsesRef{5},decompoMUFiltered(2).pulse}, [], 1000, 0, 0, []);
+
+%% 绘制23*25个区域的估计源信号
+for r = 1:23
+    for c = 1:25
+        tmpPulses = DecompoResults.decompo_pulses{r, c};
+        tmpSources = DecompoResults.sources{r, c};
+        tmpSourcesRaw = DecompoResults.sourceFirst{r, c};
+        tmpCoV = DecompoResults.CoV{r, c};
+        ax=figure;
+        for mu = 1:length(tmpPulses)
+            subplot(10,5,mu+floor((mu-1)/5)*5);
+            plot(tmpSourcesRaw(:,mu));
+            xlim([0,4000]);
+            xticks(0:1000:4000);
+            xticklabels(0:1:4);
+            xlabel('t/s'); ylabel('amplitude');
+            title(['mu=' num2str(mu) '一阶段迭代结果'])
+
+            subplot(10,5,mu+ceil(mu/5)*5);
+            plot(tmpSources(:,mu));
+            xlim([0,4000]);
+            xticks(0:1000:4000);
+            xticklabels(0:1:4);
+            xlabel('t/s'); ylabel('amplitude');
+            title(['mu=' num2str(mu) '二阶段迭代结果'])
+        end
+        set(gcf,'unit','normalized','position',[0,0,1,1]);
+        saveas(ax, ['./Results/R' Sub '/r' num2str(r) 'c' num2str(c)], 'png');
+        close;
     end
 end
 
@@ -273,7 +346,6 @@ else
     end
 end
 
-
 %% 二次筛选
 % 计算带有时延的互相关系数
 [cc, ~] = xcorr(decompoSources, 'coeff');
@@ -333,18 +405,21 @@ for muii = 1:5%numMU
     sgtitle(['MU #' num2str(muii)]);
 end
 
-
 %%
 figure;
 subplot(2,1,1);
-plot(tmpSourcesRaw(:,mu));
+plot(decompoMUFiltered(1).sourceRaw);
+xlim([0,4000]);
+xticks(0:1000:4000);
+xticklabels(0:1:4);
+xlabel('t/s'); ylabel('amplitude');
+title('一阶段迭代结果')
 subplot(2,1,2);
-plot(tmpSources(:,mu));
-
-figure;
-subplot(2,1,1);
-plot(tmpSourcesRaw(:,mu));
-xlim([10000,14000]);
-subplot(2,1,2);
-plot(tmpSources(:,mu));
-xlim([10000,14000]);
+plot(decompoMUFiltered(1).source);
+hold on;
+plot(decompoMUFiltered(1).pulse, decompoMUFiltered(1).source(decompoMUFiltered(1).pulse), 'ro');
+xlim([0,4000]);
+xticks(0:1000:4000);
+xticklabels(0:1:4);
+xlabel('t/s'); ylabel('amplitude');
+title('二阶段迭代结果')

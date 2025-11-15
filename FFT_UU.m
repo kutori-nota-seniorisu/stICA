@@ -29,6 +29,7 @@ subplot(3,1,1);plot(t,x_source);title('原信号');grid on;
 subplot(3,1,2);plot(f_1,P1_1);grid on;title('Single-Sided Amplitude Spectrum of S(t)');
 xlabel('f (Hz)');ylabel('|P1(f)|');
 subplot(3,1,3);plot(f_1,Y_angle_1);title('原信号频谱相位特性');grid on;
+
 %%
 % 演示频率混叠
 Fs = 1000;
