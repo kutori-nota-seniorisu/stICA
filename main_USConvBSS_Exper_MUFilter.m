@@ -4,8 +4,8 @@ addpath('./Func');
 Sub = '16';
 % 导入数据
 load(['./Data/experiment/ICdata/R' Sub '/USCBSS_compo25.mat']);
+
 %% step1 以MAD和能量占比筛选
-% decompoMURaw = struct('MU', {}, 'row', {}, 'col', {}, 'pulse', {}, 'source', {}, 'CoV', {});
 saveMUs = [];
 saveRows = [];
 saveCols = [];
