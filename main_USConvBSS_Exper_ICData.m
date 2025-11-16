@@ -151,7 +151,7 @@ for Sub = [16]
             while true
                 CoV_old = CoV_new;
                 s = w_new' * Z;
-                [source_new, PT, CoV_new, ~] = blindDeconvPeakFinding(s, fsampu, 20, 2, 60, 2);
+                [source_new, PT, CoV_new, ~] = blindDeconvPeakFinding(s, fsampu, 20, 2, 20, 2);
                 w_new = mean(Z(:, PT), 2);
                 countcount = countcount + 1;
                 disp(['r=' num2str(r) ',c=' num2str(c) ',i=' num2str(i) '，二阶段迭代' num2str(countcount) '次']);
