@@ -5,19 +5,26 @@ Sub = '16';
 % 导入数据
 load(['./Data/experiment/ICdata/R' Sub '/USCBSS_compo25.mat']);
 %% step1 以MAD和能量占比筛选
-decompoMURaw = struct('row', {}, 'col', {}, 'pulse', {}, 'source', {}, 'CoV', {});
+% decompoMURaw = struct('MU', {}, 'row', {}, 'col', {}, 'pulse', {}, 'source', {}, 'CoV', {});
+saveMUs = [];
+saveRows = [];
+saveCols = [];
+savePulses = {};
+saveSources = [];
+saveTwitches = [];
+saveEnergyRatio = [];
+saveCoV = [];
+
 fsampu = 1000;
-% decompoSources = [];
 % 计算放电串的MAD，大于25ms则去除
 % 计算估计源在6-14Hz内的能量占比，小于20%则去除
-for r = 16:23
+for r = 1:23
     for c = 1:25
         tmpPulses = DecompoResults.decompo_pulses{r, c};
         tmpSources = DecompoResults.sources{r, c};
         tmpSourcesRaw = DecompoResults.sourceFirst{r, c};
         tmpCoV = DecompoResults.CoV{r, c};
 
-        ax = figure;
         for mu = 1:length(tmpPulses)
             % 计算MAD，单位为ms
             MAD = mad(diff(tmpPulses{mu}/fsampu*1000));
@@ -30,22 +37,6 @@ for r = 16:23
             energyInBand = trapz(freq(idxBand), psd(idxBand));
             energyTotal = trapz(freq(idxTotal), psd(idxTotal));
             energyRatio = energyInBand / energyTotal * 100;
-
-            subplot(10,5,mu+floor((mu-1)/5)*5);
-            plot(tmpSourcesRaw(:,mu));
-            xlim([0,4000]);
-            xticks(0:1000:4000);
-            xticklabels(0:1:4);
-            xlabel('t/s'); ylabel('amplitude');
-            title(['mu=' num2str(mu) '一阶段迭代'])
-
-            subplot(10,5,mu+ceil(mu/5)*5);
-            plot(tmpSources(:,mu));
-            xlim([0,4000]);
-            xticks(0:1000:4000);
-            xticklabels(0:1:4);
-            xlabel('t/s'); ylabel('amplitude');
-            title(['mu=' num2str(mu) '二阶段迭代，MAD=' num2str(MAD) ',ER=' num2str(energyRatio) '%']);
 
             % L = 30000;
             % tmp = abs(fft(tmpSources(:, mu))/L);
@@ -69,31 +60,31 @@ for r = 16:23
 
             if MAD <= 25 && energyRatio >= 20
                 disp(['r=' num2str(r) ',c=' num2str(c) ',mu=' num2str(mu) '保留！']);
-                decompoMURaw(end+1).MU = mu;
-                decompoMURaw(end).row = r;
-                decompoMURaw(end).col = c;
-                decompoMURaw(end).pulse = tmpPulses{mu};
-                decompoMURaw(end).source = tmpSources(:, mu);
-                decompoMURaw(end).sourceRaw = tmpSourcesRaw(:, mu);
-                decompoMURaw(end).energyRatio = energyRatio;
-                decompoMURaw(end).CoV = tmpCoV(mu);
-                % decompoSources(:, end+1) = tmpSources(:, mu);
+                saveMUs(end+1) = mu;
+                saveRows(end+1) = r;
+                saveCols(end+1) = c;
+                savePulses{end+1} = tmpPulses{mu};
+                saveSources(:, end+1) = tmpSources(:, mu);
+                saveTwitches(:, end+1) = tmpSourcesRaw(:, mu);
+                saveEnergyRatio(end+1) = energyRatio;
+                saveCoV(end+1) = tmpCoV(mu);
             end
         end
-
-        set(gcf,'unit','normalized','position',[0,0,1,1]);
-        saveas(ax, ['./Results/R' Sub '/r' num2str(r) 'c' num2str(c)], 'png');
-        close;
     end
 end
-%% step2 以互相关系数为标准去重
-% decompoMU = struct('row', {}, 'col', {}, 'pulse', {}, 'source', {}, 'CoV', {});
-% decompo
-% 假设 decompoMURaw 是您的结构体数组，包含 row, col, source, CoV 四个字段
+decompoMURaw.MU = saveMUs;
+decompoMURaw.Row = saveRows;
+decompoMURaw.Col = saveCols;
+decompoMURaw.Pulse = savePulses;
+decompoMURaw.Source = saveSources;
+decompoMURaw.Twitch = saveTwitches;
+decompoMURaw.ER = saveEnergyRatio;
+decompoMURaw.CoV = saveCoV;
 
+%% step2 以互相关系数为标准去重
 % 第一步：提取所有source信号
-sources = [decompoMURaw.source];
-numSources = length(decompoMURaw);
+sources = decompoMURaw.Source;
+numSources = length(decompoMURaw.MU);
 
 % 第二步：计算带有时移的互相关系数矩阵
 corrThreshold = 0.3;  % 相关系数阈值
@@ -105,15 +96,15 @@ crossCorrMatrix = zeros(numSources, numSources);
 for i = 1:numSources
     for j = i+1:numSources  % 只计算上三角部分，避免重复
         % 计算互相关系数，考虑时移
-        % [corrVals, ~] = xcorr(sources(:, i), sources(:, j), 'coeff');
+        [corrVals, ~] = xcorr(sources(:, i), sources(:, j), 'coeff');
         % 取绝对值最大值（考虑正负相关）
-        % maxCorr = max(abs(corrVals));
-        % crossCorrMatrix(i,j) = maxCorr;
-        % crossCorrMatrix(j,i) = maxCorr;  % 对称矩阵
+        maxCorr = max(abs(corrVals));
+        crossCorrMatrix(i,j) = maxCorr;
+        crossCorrMatrix(j,i) = maxCorr;  % 对称矩阵
 
-        [corrVals, ~] = corr(sources(:, i), sources(:, j));
-        crossCorrMatrix(i,j) = abs(corrVals);
-        crossCorrMatrix(j,i) = abs(corrVals);
+        % [corrVals, ~] = corr(sources(:, i), sources(:, j));
+        % crossCorrMatrix(i,j) = abs(corrVals);
+        % crossCorrMatrix(j,i) = abs(corrVals);
     end
 end
 
@@ -134,7 +125,7 @@ for i = 1:numSources
         % 如果互相关系数大于阈值
         if crossCorrMatrix(i, j) > corrThreshold
             % 比较CoV，选择较小的一个
-            if decompoMURaw(i).CoV <= decompoMURaw(j).CoV
+            if decompoMURaw.CoV(i) <= decompoMURaw.CoV(j)
                 selectedIndices(j) = false;  % 删除第j个
             else
                 selectedIndices(i) = false;  % 删除第i个
@@ -148,12 +139,19 @@ for i = 1:numSources
 end
 
 % 第四步：创建筛选后的结构体数组
-decompoMUFiltered = decompoMURaw(selectedIndices);
+decompoMUFiltered.MU = decompoMURaw.MU(selectedIndices);
+decompoMUFiltered.Row = decompoMURaw.Row(selectedIndices);
+decompoMUFiltered.Col = decompoMURaw.Col(selectedIndices);
+decompoMUFiltered.Pulse = decompoMURaw.Pulse{selectedIndices};
+decompoMUFiltered.Source = decompoMURaw.Source(:, selectedIndices);
+decompoMUFiltered.Twitch = decompoMURaw.Twitch(:, selectedIndices);
+decompoMUFiltered.ER = decompoMURaw.ER(selectedIndices);
+decompoMUFiltered.CoV = decompoMURaw.CoV(selectedIndices);
 
 % 输出结果信息
 fprintf('原始元素数量: %d\n', numSources);
-fprintf('筛选后元素数量: %d\n', length(decompoMUFiltered));
-fprintf('删除元素数量: %d\n', numSources - length(decompoMUFiltered));
+fprintf('筛选后元素数量: %d\n', length(decompoMUFiltered.MU));
+fprintf('删除元素数量: %d\n', numSources - length(decompoMUFiltered.MU));
 
 % 显示被保留的索引
 fprintf('被保留的索引: ');
@@ -250,32 +248,47 @@ save(['./Data/experiment/ICdata/R' Sub '/USCBSS_decomp_result.mat'], 'decompoMUR
 % plotDecomps({pulsesRef{5},decompoMUFiltered(2).pulse}, [], 1000, 0, 0, []);
 
 %% 绘制23*25个区域的估计源信号
+fsampu = 1000;
 for r = 1:23
     for c = 1:25
         tmpPulses = DecompoResults.decompo_pulses{r, c};
         tmpSources = DecompoResults.sources{r, c};
         tmpSourcesRaw = DecompoResults.sourceFirst{r, c};
         tmpCoV = DecompoResults.CoV{r, c};
-        ax=figure;
+
+        ax = figure;
         for mu = 1:length(tmpPulses)
+            % 计算MAD，单位为ms
+            MAD = mad(diff(tmpPulses{mu}/fsampu*1000));
+            % 计算能量占比
+            [psd, freq] = pwelch(tmpSources(:, mu), [], [], [], fsampu);
+            % frequency band of interest
+            freqbandOI = [6, 14];
+            idxBand = freq >= freqbandOI(1) & freq <= freqbandOI(2);
+            idxTotal = freq > 0;
+            energyInBand = trapz(freq(idxBand), psd(idxBand));
+            energyTotal = trapz(freq(idxTotal), psd(idxTotal));
+            energyRatio = energyInBand / energyTotal * 100;
+
             subplot(10,5,mu+floor((mu-1)/5)*5);
             plot(tmpSourcesRaw(:,mu));
-            xlim([0,4000]);
-            xticks(0:1000:4000);
-            xticklabels(0:1:4);
+            xlim([4000,8000]);
+            xticks(4000:1000:8000);
+            xticklabels(4:1:8);
             xlabel('t/s'); ylabel('amplitude');
-            title(['mu=' num2str(mu) '一阶段迭代结果'])
+            title(['twitch mu=' num2str(mu)])
 
             subplot(10,5,mu+ceil(mu/5)*5);
             plot(tmpSources(:,mu));
-            xlim([0,4000]);
-            xticks(0:1000:4000);
-            xticklabels(0:1:4);
+            xlim([4000,8000]);
+            xticks(4000:1000:8000);
+            xticklabels(4:1:8);
             xlabel('t/s'); ylabel('amplitude');
-            title(['mu=' num2str(mu) '二阶段迭代结果'])
+            title(['source mu=' num2str(mu) '，MAD=' num2str(MAD) ',ER=' num2str(energyRatio) '%']);
         end
+
         set(gcf,'unit','normalized','position',[0,0,1,1]);
-        saveas(ax, ['./Results/R' Sub '/r' num2str(r) 'c' num2str(c)], 'png');
+        saveas(ax, ['./Results/R' Sub '_MPD60/r' num2str(r) 'c' num2str(c)], 'png');
         close;
     end
 end
