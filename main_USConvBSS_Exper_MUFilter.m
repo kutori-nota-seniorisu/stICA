@@ -1,9 +1,9 @@
 %% 仿真数据Pulse筛选
 clear; clc; close all;
 addpath('./Func');
-Sub = '16';
+sub = '16';
 % 导入数据
-load(['./Data/experiment/ICdata/R' Sub '/USCBSS_compo25.mat']);
+load(['./Data/experiment/ICdata/R' sub '/USCBSS_compo25_MPD60.mat']);
 
 %% step1 以MAD和能量占比筛选
 saveMUs = [];
@@ -142,7 +142,7 @@ end
 decompoMUFiltered.MU = decompoMURaw.MU(selectedIndices);
 decompoMUFiltered.Row = decompoMURaw.Row(selectedIndices);
 decompoMUFiltered.Col = decompoMURaw.Col(selectedIndices);
-decompoMUFiltered.Pulse = decompoMURaw.Pulse{selectedIndices};
+decompoMUFiltered.Pulse = decompoMURaw.Pulse(selectedIndices);
 decompoMUFiltered.Source = decompoMURaw.Source(:, selectedIndices);
 decompoMUFiltered.Twitch = decompoMURaw.Twitch(:, selectedIndices);
 decompoMUFiltered.ER = decompoMURaw.ER(selectedIndices);
@@ -169,7 +169,7 @@ end
 fprintf('\n');
 
 %% 脉冲串匹配
-load(['./Data/experiment/ICdata/R' Sub '/pulsesRef.mat']);
+load(['./Data/experiment/ICdata/R' sub '/pulsesRef.mat']);
 % 匹配容差为0~5ms
 winSize = [0, 5]/1000*fsampu;
 % lim=100ms，转换成样本点作为输入参数
@@ -179,55 +179,68 @@ lim = 100/1000*fsampu;
 % for i = 1:length(decompoMUFiltered)
 %     decompoPulses{i} = decompoMUFiltered(i).pulse;
 % end
-% [matchResult, matchResultRaw] = PulseMatch(decompoPulses, pulsesRef, 0.3, 1000);
+% [matchResult, matchResultRaw] = PulseMatch(decompoMUFiltered.Pulse, pulsesRef, 0.3, 1000);
 
 matchResultRaw = [];
 for i = 1:length(pulsesRef)
-    if length(pulsesRef{i}) < 150 || length(pulsesRef{i}) > 450
-        disp(['i=' num2str(i) '参考脉冲序列无效']);
-        continue;
-    end
-    for j = 1:length(decompoMUFiltered)
-        xcor = fxcorr(pulsesRef{i}, decompoMUFiltered(j).pulse, lim);
-        winSums = zeros(1, 2*lim+1-(winSize(2)-winSize(1)));
-        for k = 1:2*lim+1-(winSize(2)-winSize(1))
-            winSums(k) = sum(xcor(k:k+(winSize(2)-winSize(1))));
-        end
-        [maxMatchSum, maxIdx] = max(winSums);
-        % 最佳匹配的时移
-        Lag = maxIdx - winSize(1) - lim - 1;
-        % 匹配上的脉冲个数，真阳性
-        TP = maxMatchSum;
-        % 假阳性
-        FP = length(decompoMUFiltered(j).pulse) - maxMatchSum;
-        % 假阴性
-        FN = length(pulsesRef{i}) - maxMatchSum;
-        % 匹配率
-        matchRatio = TP / (TP + FN) * 100;
-        % RoA
-        rr = TP / (TP + FP + FN);
-        % rr = RoA(decompoMUFiltered(j).pulse, pulsesRef{i}, 100, 5);
-
-        matchResultRaw(end+1, :) = [i, j, Lag, TP, FP, FN, matchRatio, rr];
+    for j = 1:length(decompoMUFiltered.MU)
+        [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(pulsesRef{i},decompoMUFiltered.Pulse{j},round(0.005*fsampu),0);
+        [Sen,FA,Pre,Spe,Acc] = accEvaluation(decompoMUFiltered.Pulse{j},pulsesRef{i},round(0.005*fsampu),100);
+        matchResultRaw(end+1,:) = [i,j,Lag,Sens,Sen,Miss,FalseAlarms,FA,Specificity,Spe,Pre,Acc];
     end
 end
+matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc'});
 
-matchResultRaw = array2table(matchResultRaw, 'VariableNames', {'ref', 'decomp', 'Lag', 'TP', 'FP', 'FN', 'match ratio', 'RoA'});
+plotDecomps(decompoMUFiltered.Pulse, [], fsampu, 0, 0, []);
+plotDecomps(decompoMURaw.Pulse, [], fsampu, 0, 0, []);
+plotDecomps(pulsesRef, [], fsampu, 0, 0, []);
+
+% matchResultRaw = [];
+% for i = 1:length(pulsesRef)
+%     if length(pulsesRef{i}) < 150 || length(pulsesRef{i}) > 450
+%         disp(['i=' num2str(i) '参考脉冲序列无效']);
+%         continue;
+%     end
+%     for j = 1:length(decompoMUFiltered.MU)
+%         xcor = fxcorr(pulsesRef{i}, decompoMUFiltered.Pulse{j}, lim);
+%         winSums = zeros(1, 2*lim+1-(winSize(2)-winSize(1)));
+%         for k = 1:2*lim+1-(winSize(2)-winSize(1))
+%             winSums(k) = sum(xcor(k:k+(winSize(2)-winSize(1))));
+%         end
+%         [maxMatchSum, maxIdx] = max(winSums);
+%         % 最佳匹配的时移
+%         Lag = maxIdx - winSize(1) - lim - 1;
+%         % 匹配上的脉冲个数，真阳性
+%         TP = maxMatchSum;
+%         % 假阳性
+%         FP = length(decompoMUFiltered.Pulse{j}) - maxMatchSum;
+%         % 假阴性
+%         FN = length(pulsesRef{i}) - maxMatchSum;
+%         % 匹配率
+%         matchRatio = TP / (TP + FN) * 100;
+%         % RoA
+%         rr = TP / (TP + FP + FN);
+%         % rr = RoA(decompoMUFiltered(j).pulse, pulsesRef{i}, 100, 5);
+% 
+%         matchResultRaw(end+1, :) = [i, j, Lag, TP, FP, FN, matchRatio, rr];
+%     end
+% end
+% 
+% matchResultRaw = array2table(matchResultRaw, 'VariableNames', {'ref', 'decomp', 'Lag', 'TP', 'FP', 'FN', 'match ratio', 'RoA'});
 
 %% 计算筛选后MU的PNR
-for sub = [3,4,5,7,10,11,12,14,15,16,17,18]
+for sub = 16%[3,4,5,7,10,11,12,14,15,16,17,18]
     % 导入数据
-    load(['./Data/experiment/ICdata/R' num2str(sub) '/USCBSS_decomp_result.mat']);
+    load(['./Data/experiment/ICdata/R' num2str(sub) '/USCBSS_DecompResult_MPD60.mat']);
     PNRs = [];
     Rows = [];
-    for i = 1:length(decompoMUFiltered)
-        IPT = decompoMUFiltered(i).source;
-        pulse = decompoMUFiltered(i).pulse;
-        % 10*log10(mean(tT(compInd).^2)/mean(tT(setdiff([1:length(tT)],compInd)).^2))
-        Rows(i) = decompoMUFiltered(i).row;
+    for i = 1:length(decompoMUFiltered.MU)
+        IPT = decompoMUFiltered.Source(:, i);
+        pulse = decompoMUFiltered.Pulse{i};
+        Rows(i) = decompoMUFiltered.Row(i);
         PNRs(i) = 10*log10( mean( IPT(pulse).^2 ) / mean( IPT(setdiff(1:length(IPT), pulse)).^2 ) );
     end
-    save(['./Data/experiment/ICdata/R' num2str(sub) '/PNRs.mat'], 'PNRs', 'Rows');
+    % save(['./Data/experiment/ICdata/R' num2str(sub) '/PNRs.mat'], 'PNRs', 'Rows');
 end
 
 PNRsAll = [];
@@ -243,7 +256,7 @@ std(PNRsAll)
 median(PNRsAll)
 
 %% 保存结果
-save(['./Data/experiment/ICdata/R' Sub '/USCBSS_decomp_result.mat'], 'decompoMURaw', 'decompoMUFiltered', 'matchResultRaw');
+save(['./Data/experiment/ICdata/R' sub '/USCBSS_DecompResult_MPD60.mat'], 'decompoMURaw', 'decompoMUFiltered', 'matchResultRaw');
 
 % plotDecomps({pulsesRef{5},decompoMUFiltered(2).pulse}, [], 1000, 0, 0, []);
 
@@ -288,7 +301,7 @@ for r = 1:23
         end
 
         set(gcf,'unit','normalized','position',[0,0,1,1]);
-        saveas(ax, ['./Results/R' Sub '_MPD60/r' num2str(r) 'c' num2str(c)], 'png');
+        saveas(ax, ['./Results/R' sub '_LowPass/r' num2str(r) 'c' num2str(c)], 'png');
         close;
     end
 end
