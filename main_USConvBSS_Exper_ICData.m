@@ -16,7 +16,7 @@ if isempty(gcp('nocreate'))
 end
 
 % 导入TVI数据
-for sub = [16, 17, 18]
+for sub = [16]%, 17, 18]
 
     disp(['Sub=' num2str(sub)]);
     tviFile = ['./Data/experiment/ICdata/R' num2str(sub) '/v_2d_all.mat'];
@@ -32,14 +32,14 @@ for sub = [16, 17, 18]
     % TVIDataFilter = v_2d_all;
 
     % 时间5-100Hz带通滤波
-    % [Be2, Ae2] = butter(4, [100]/fsampu*2);
-    % for r = 1:size(TVIDataFilter, 1)
-    %     parfor c = 1:size(TVIDataFilter, 2)
-    %         tmp = squeeze(TVIDataFilter(r, c, :));
-    %         tmp = filtfilt(Be2, Ae2, tmp);
-    %         TVIDataFilter(r, c, :) = tmp;
-    %     end
-    % end
+    [Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
+    for r = 1:size(TVIDataFilter, 1)
+        parfor c = 1:size(TVIDataFilter, 2)
+            tmp = squeeze(TVIDataFilter(r, c, :));
+            tmp = filtfilt(Be2, Ae2, tmp);
+            TVIDataFilter(r, c, :) = tmp;
+        end
+    end
 
     toc;
     disp(['数据预处理用时' num2str(toc)]);
@@ -193,7 +193,7 @@ for sub = [16, 17, 18]
         mkdir(savepath);
         disp('创建路径！');
     end
-    save([savepath '/USCBSS_compo' num2str(numCompo) '_MPD50.mat'], 'DecompoResults', '-v7.3');
+    save([savepath '/USCBSS_compo' num2str(numCompo) '_Filter_MPD50.mat'], 'DecompoResults', '-v7.3');
     disp('数据保存完成！');
 
 end

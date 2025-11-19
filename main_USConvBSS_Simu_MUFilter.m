@@ -1,6 +1,6 @@
 %% 仿真数据Pulse筛选
 clear; clc; close all;
-datasets_num = '10';
+datasets_num = '1';
 load(['./Data/simulation/datasets' datasets_num '/USCBSS_compo10.mat']);
 
 %% 初步筛选

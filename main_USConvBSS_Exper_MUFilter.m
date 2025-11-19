@@ -1,9 +1,9 @@
-%% 仿真数据Pulse筛选
+% 对US分解得到的MU进行筛选
 clear; clc; close all;
 addpath('./Func');
 sub = '16';
 % 导入数据
-load(['./Data/experiment/ICdata/R' sub '/USCBSS_compo25_MPD60.mat']);
+load(['./Data/experiment/ICdata/R' sub '/USCBSS_compo25_MPD50.mat']);
 
 %% step1 以MAD和能量占比筛选
 saveMUs = [];
@@ -38,26 +38,6 @@ for r = 1:23
             energyTotal = trapz(freq(idxTotal), psd(idxTotal));
             energyRatio = energyInBand / energyTotal * 100;
 
-            % L = 30000;
-            % tmp = abs(fft(tmpSources(:, mu))/L);
-            % sFFT = tmp(1:L/2+1);
-            % sFFT(2:end-1) = 2*sFFT(2:end-1);
-            % E = sFFT.^2;
-            % freq = (0:1:L/2)*fsampu/L;
-            % freqbandOI = [6, 14];
-            % idxBand = freq >= freqbandOI(1) & freq <= freqbandOI(2);
-            % idxTotal = freq > 0;
-            % energyInBand = trapz(freq(idxBand), E(idxBand));
-            % energyTotal = trapz(freq(idxTotal), E(idxTotal));
-            % energyRatio = energyInBand / energyTotal * 100;
-
-            % if MAD > 25
-            %     disp(['r=' num2str(r) ',c=' num2str(c) ',mu=' num2str(mu) 'MAD过大']);
-            % end
-            % if energyRatio < 20
-            %     disp(['r=' num2str(r) ',c=' num2str(c) ',mu=' num2str(mu) '能量占比过小']);
-            % end
-
             if MAD <= 25 && energyRatio >= 20
                 disp(['r=' num2str(r) ',c=' num2str(c) ',mu=' num2str(mu) '保留！']);
                 saveMUs(end+1) = mu;
@@ -80,6 +60,8 @@ decompoMURaw.Source = saveSources;
 decompoMURaw.Twitch = saveTwitches;
 decompoMURaw.ER = saveEnergyRatio;
 decompoMURaw.CoV = saveCoV;
+
+clear saveMUs saveRows saveCols savePulses saveSources saveTwitches saveEnergyRatio saveCoV;
 
 %% step2 以互相关系数为标准去重
 % 第一步：提取所有source信号
@@ -168,6 +150,9 @@ else
 end
 fprintf('\n');
 
+%% 保存分解筛选结果
+save(['./Data/experiment/ICdata/R' sub '/USCBSS_DecompResult_MPD50.mat'], 'decompoMURaw', 'decompoMUFiltered');
+
 %% 脉冲串匹配
 load(['./Data/experiment/ICdata/R' sub '/pulsesRef.mat']);
 % 匹配容差为0~5ms
@@ -186,10 +171,11 @@ for i = 1:length(pulsesRef)
     for j = 1:length(decompoMUFiltered.MU)
         [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(pulsesRef{i},decompoMUFiltered.Pulse{j},round(0.005*fsampu),0);
         [Sen,FA,Pre,Spe,Acc] = accEvaluation(decompoMUFiltered.Pulse{j},pulsesRef{i},round(0.005*fsampu),100);
-        matchResultRaw(end+1,:) = [i,j,Lag,Sens,Sen,Miss,FalseAlarms,FA,Specificity,Spe,Pre,Acc];
+        [rr, ~] = RoA(decompoMUFiltered.Pulse{j},pulsesRef{i},100, round(0.005*fsampu));
+        matchResultRaw(end+1,:) = [i,j,rr,Lag,Sens,Sen,Miss,FalseAlarms,FA,Specificity,Spe,Pre,Acc];
     end
 end
-matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc'});
+matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc'});
 
 plotDecomps(decompoMUFiltered.Pulse, [], fsampu, 0, 0, []);
 plotDecomps(decompoMURaw.Pulse, [], fsampu, 0, 0, []);
@@ -255,8 +241,7 @@ mean(PNRsAll)
 std(PNRsAll)
 median(PNRsAll)
 
-%% 保存结果
-save(['./Data/experiment/ICdata/R' sub '/USCBSS_DecompResult_MPD60.mat'], 'decompoMURaw', 'decompoMUFiltered', 'matchResultRaw');
+
 
 % plotDecomps({pulsesRef{5},decompoMUFiltered(2).pulse}, [], 1000, 0, 0, []);
 
@@ -374,9 +359,10 @@ end
 
 %% 二次筛选
 % 计算带有时延的互相关系数
-[cc, ~] = xcorr(decompoSources, 'coeff');
+[cc, ~] = xcorr(decompoMUFiltered.Source, 'coeff');
+numMU = length(decompoMUFiltered.MU);
 % 转成三维数组
-cc = reshape(cc', size(decompoSources, 2), size(decompoSources, 2), []);
+cc = reshape(cc', numMU, numMU, []);
 % 计算互相关系数的最大值
 ccMax = max(abs(cc), [], 3);
 % % 生成掩膜。只关注矩阵的上三角部分，不包含对角线，避免重复比较。

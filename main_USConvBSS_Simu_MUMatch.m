@@ -40,4 +40,4 @@ matchresult_time = array2table(matchresult_time, 'VariableNames', {'decomp', 're
 
 plotDecomps(ipulses, [], 2000, 0, 0, []);
 
-save(['./Results/datasets' datasets_num '_result.mat'], 'decompoCoVAll', 'decompoPulseAll', 'decompoSourceFirstAll', 'decompoSourceAll', 'matchresult_time', 'matchresult_time_raw', 'spike_ROA_matrix');
+% save(['./Results/datasets' datasets_num '_result.mat'], 'decompoCoVAll', 'decompoPulseAll', 'decompoSourceFirstAll', 'decompoSourceAll', 'matchresult_time', 'matchresult_time_raw', 'spike_ROA_matrix');

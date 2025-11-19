@@ -5,7 +5,8 @@ addpath('./Func');
 win = [-50, 50];
 fsampu = 1000;
 
-for sub = [16]
+% for sub = [16, 17]
+sub = 17;
     disp(['Sub=' num2str(sub)]);
     % 导入超声速度图像
     tviFile = ['./Data/experiment/ICdata/R' num2str(sub) '/v_2d_all.mat'];
@@ -29,7 +30,7 @@ for sub = [16]
     % 窗口移动距离
     dRow = 5; dCol = 5;
     
-    load(['./Data/experiment/ICdata/R' num2str(sub) '/USCBSS_DecompResult_MPD60.mat']);
+    load(['./Data/experiment/ICdata/R' num2str(sub) '/USCBSS_DecompResult_MPD50.mat']);
 
     for mu = 1:length(decompoMUFiltered.MU)
         tmpPulses = decompoMUFiltered.Pulse{mu};
@@ -74,4 +75,4 @@ for sub = [16]
         ax = subplot('Position', [0.05, 0.05, 0.9, 0.9]);
         [~,maxAmp,maxPP,pos]=plotArrayPotential(frameSTAROI, 1, 1, ax);
     end
-end
+% end
