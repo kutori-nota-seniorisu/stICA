@@ -1,7 +1,7 @@
 % 对US分解得到的MU进行筛选
 clear; clc; close all;
 addpath('./Func');
-sub = '16';
+sub = '18';
 % 导入数据
 load(['./Data/experiment/ICdata/R' sub '/USCBSS_compo25_MPD50.mat']);
 
@@ -240,8 +240,6 @@ end
 mean(PNRsAll)
 std(PNRsAll)
 median(PNRsAll)
-
-
 
 % plotDecomps({pulsesRef{5},decompoMUFiltered(2).pulse}, [], 1000, 0, 0, []);
 

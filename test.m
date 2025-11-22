@@ -1,73 +1,6 @@
 clear; clc; close all;
 
-%%
-% R3 32451 - 93725
-fsampu = 1000;
-Sub = '3';
-load(['./Data/experiment/ICdata/R' Sub '/R' Sub '.mat']);
-% 计算范围
-trigger = Data{1, 2}(end, :);
-fallingEdges = find(diff(trigger) < -10000);
-minInterval = 100;
-if ~isempty(fallingEdges)
-    mergedEdges = fallingEdges(1);
-    for i = 2:length(fallingEdges)
-        if fallingEdges(i) - mergedEdges(end) > minInterval
-            mergedEdges(end+1) = fallingEdges(i);
-        end
-    end
-else
-    mergedEdges = [];
-end
-% 取前两个下降沿
-if length(mergedEdges) >= 2
-    edge1 = mergedEdges(1)+1;
-    edge2 = mergedEdges(2)+1;
-else
-    error('未检测到足够的下降沿');
-end
-figure;
-plot(trigger);
-hold on;
-plot(edge1, trigger(edge1), 'ro');
-plot(edge2, trigger(edge2), 'ro');
-
-%%
-pulses = struct2cell(Data{2, 2});
-for iii = 1:length(pulses)
-    % 需要对原始数据转置一下，变成行的形式，调用plotDecomps时才不会绘制出错
-    tmp = pulses{iii};
-    if length(tmp) < 10
-        continue;
-    end
-    tmp((diff(tmp)<0))=[];
-    tmp = tmp(tmp>=edge1 & tmp<=edge2);
-    % tmp(1) = [];
-    % tmp = tmp - edge1;
-    % tmp = round(tmp/2048*fsampu);
-    pulsesRef{iii} = tmp';
-end
-plotDecomps(pulsesRef, [], fsampu, 0, 0, []);
-% xlim([12397,73661]/2048);
-yticks(1:length(pulsesRef))
-save(['./Data/experiment/ICdata/R' sub '/pulsesRef.mat'], 'pulsesRef');
-
-%%
-% Sub = '10';
-load(['./Data/experiment/ICdata/R' Sub '/output_info.mat']);
-load(['./Data/experiment/ICdata/R' Sub '/Vel_globalTime.mat']);
-pulsesRef = {};
-for mu = 1:length(output_info)
-    if length(output_info(mu).MUFiring_in_region) < 10
-        continue;
-    end
-    pulsesRef{end+1} = round((output_info(mu).MUFiring_in_region' + output_info(mu).EMG_shift + 1 - Vel_globalTime(1)*2048)/2048*1000);% + output_info(mu).EMG_shift + 1 
-end
-plotDecomps(pulsesRef, [], fsampu, 0, 0, []);
-yticks(1:length(pulsesRef))
-save(['./Data/experiment/ICdata/R' Sub '/pulsesRef.mat'], 'pulsesRef');
-
-%% 对IC结果进行统计
+%% 对ICData的结果进行统计
 EMGMU = [1,2,2,4,4,4,4,5,5,7,6,6];
 recordLabel = [3,4,5,7,10,11,12,14,15,16,17,18];
 countAll = 0;
@@ -134,15 +67,6 @@ mean(RoA)
 std(RoA)
 median(RoA)
 
-%% 绘制Data{1,2}每条通道的波形
-for i = 1:13
-    figure;
-    for j = 1:10
-        subplot(5,2,j);
-        plot(Data{1,2}((i-1)*10+j,:));
-        title(num2str((i-1)*10+j));
-    end
-end
 %%
 d1 = 8;
 d2 = 4;
@@ -212,3 +136,145 @@ for ni = 1:2
         % ylim([0, 1e-3])
     end
 end
+
+%% 绘制TVI滤波前后的时域与频域图像
+s=squeeze(TVIData(59,70,:));
+fsampu = 1000;
+L=length(s);
+Y=fft(s);
+P2=abs(Y/L);
+P1=P2(1:L/2+1);
+P1(2:end-1)=2*P1(2:end-1);
+f=(0:L/2)*fsampu/L;
+figure;
+subplot(2,1,1);
+plot(s);
+xticklabels(0:5:30);
+xlabel('Time (s)');
+ylabel('Amplitude');
+title('TVI (滤波前)');
+subplot(2,1,2);
+plot(f,P1);
+xlabel('frequency (Hz)')
+ylabel('amplitude');
+title('幅度谱');
+
+s2=squeeze(TVIDataFilter(59,70,:));
+fsampu = 1000;
+L2=length(s2);
+Y2=fft(s2);
+P22=abs(Y2/L2);
+P12=P22(1:L2/2+1);
+P12(2:end-1)=2*P12(2:end-1);
+f2=(0:L2/2)*fsampu/L2;
+figure;
+subplot(2,1,1);
+plot(s2);
+xticklabels(0:5:30);
+xlabel('Time (s)');
+ylabel('Amplitude');
+title('TVI (滤波后)');
+subplot(2,1,2);
+plot(f2,P12);
+xlabel('frequency (Hz)')
+ylabel('amplitude');
+title('幅度谱');
+
+%% 统计带通滤波后USCBSS的结果，两个指标：MAD和ER
+fsampu = 1000;
+MADAll = [];
+ERAll = [];
+for r = 1:23
+    for c = 1:25
+        tmpPulses = DecompoResults.decompo_pulses{r, c};
+        tmpSources = DecompoResults.sources{r, c};
+        tmpSourcesRaw = DecompoResults.sourceFirst{r, c};
+        tmpCoV = DecompoResults.CoV{r, c};
+
+        for mu = 1:length(tmpPulses)
+            % 计算MAD，单位为ms
+            MAD = mad(diff(tmpPulses{mu}/fsampu*1000));
+            % 计算能量占比
+            [psd, freq] = pwelch(tmpSources(:, mu), [], [], [], fsampu);
+            % frequency band of interest
+            freqbandOI = [6, 14];
+            idxBand = freq >= freqbandOI(1) & freq <= freqbandOI(2);
+            idxTotal = freq > 0;
+            energyInBand = trapz(freq(idxBand), psd(idxBand));
+            energyTotal = trapz(freq(idxTotal), psd(idxTotal));
+            energyRatio = energyInBand / energyTotal * 100;
+            MADAll(end+1) = MAD;
+            ERAll(end+1) = energyRatio;
+        end
+    end
+end
+
+figure;
+yyaxis left;
+boxplot(MADAll, 'Positions', 1);
+hold on;
+yyaxis right;
+boxplot(ERAll, 'Positions', 2);
+
+figure;
+histogram(MADAll);
+figure;
+histogram(ERAll);
+
+%% 是否滤波对结果的影响，效果绘制
+fsampu = 1000;
+% 未滤波的结果绘制
+load('./Data/experiment/ICdata/R16/USCBSS_DecompResult.mat');
+s1 = decompoMUFiltered.Source(:, 1);
+t1 = decompoMUFiltered.Twitch(:, 1);
+p1 = decompoMUFiltered.Pulse{1};
+figure;
+subplot(2,1,1);
+plot(t1);
+xlim([4000,8000]);
+xticks(4000:1000:8000);
+xticklabels(4:1:8);
+xlabel('t/s'); ylabel('amplitude');
+title('MU 1 twitch curve');
+subplot(2,1,2);
+plot(s1);
+hold on;
+plot(p1, s1(p1), 'ro');
+xlim([4000,8000]);
+xticks(4000:1000:8000);
+xticklabels(4:1:8);
+xlabel('t/s'); ylabel('amplitude');
+title('MU 1 source');
+
+% 滤波结果绘制
+load('./Data/experiment/ICdata/R16/USCBSS_compo25_filter.mat');
+tmpPulses = DecompoResults.decompo_pulses{3, 11};
+tmpSources = DecompoResults.sources{3, 11};
+tmpSourcesRaw = DecompoResults.sourceFirst{3, 11};
+s2 = tmpSources(:, 1);
+t2 = tmpSourcesRaw(:, 1);
+p2 = tmpPulses{1};
+figure;
+subplot(2,1,1);
+plot(t2);
+xlim([4000,8000]);
+xticks(4000:1000:8000);
+xticklabels(4:1:8);
+xlabel('t/s'); ylabel('amplitude');
+title('twitch curve');
+subplot(2,1,2);
+plot(s2);
+hold on;
+plot(p2, s2(p2), 'ro');
+xlim([4000,8000]);
+xticks(4000:1000:8000);
+xticklabels(4:1:8);
+xlabel('t/s'); ylabel('amplitude');
+title('source');
+
+%%
+plotDecomps(decompoMUFiltered.Pulse, [], 1000, 0, 0, []);
+title('MU from US')
+
+plotDecomps(pulsesRef(1:8), [], 1000, 0, 0, []);
+title('MU from sEMG')

@@ -67,25 +67,17 @@ for mu = 1:length(decompoMUFiltered.MU)
     figure;
     ax = subplot('Position', [0.05, 0.05, 0.9, 0.9]);
     [~,maxAmp,maxPP,pos]=plotArrayPotential(frameSTAROI, 1, 1, ax);
-    title(['MU ' num2str(mu) ' twitch curve']);
 
-    % [rn, cn, ~] = size(frameSTA);
-    % tmpSTA = cell(0);
-    % for r = 1:rn
-    %     for c = 1:cn
-    %         tmpSTA{r, c} = squeeze(frameSTA(r, c, :));
-    %     end
-    % end
-    % 
-    % for r = 1:size(varSTA, 1)
-    %     for c = 1:size(varSTA, 2)
-    %         tmpVar{r, c} = squeeze(varSTA(r, c, :));
-    %     end
-    % end
-    % 
-    % figure;
-    % ax2 = subplot('Position', [0.05, 0.05, 0.9, 0.9]);
-    % plotArrayPotential(tmpVar, 1, 1, ax2);
+    [rn, cn, ~] = size(frameSTA);
+    tmpSTA = cell(0);
+    for r = 1:rn
+        for c = 1:cn
+            tmpSTA{r, c} = squeeze(frameSTA(r, c, :));
+        end
+    end
+    figure;
+    ax2 = subplot('Position', [0.05, 0.05, 0.9, 0.9]);
+    plotArrayPotential(tmpSTA, 1, 1, ax2);
 end
 % end
 
@@ -176,7 +168,7 @@ for ni = 1:2
         figure;
         ax = subplot('Position', [0.05, 0.05, 0.9, 0.9]);
         [~,maxAmp,maxPP,pos]=plotArrayPotential(arrayMUAP, 1, 1, ax);
-        title(['MU ' num2str(mu) ' MUAP array ' num2str(ni)]);
     end
+
 end
 
