@@ -1,6 +1,13 @@
 clear; clc; close all;
 
 %%
+fsampu = 1000;
+muNum = max(data.data(:,2));
+iPulses = {};
+for mu = 1:muNum
+    iPulses{mu} = round(data.data(find(data.data(:,2)==mu),1)'*fsampu);
+end
+%%
 % R3 32451 - 93725
 fsampu = 1000;
 Sub = '3';

@@ -15,18 +15,25 @@ if isempty(gcp('nocreate'))
     parpool;
 end
 
-%% TVI数据预处理
+%% 算法主体
 for level = 1%:2
     for trial = 1%:2
         for pp = 1%:2
-            disp('开始数据预处理');
-            tic;
+
+            %% TVI数据预处理
+            disp('导入数据');
             % 导入TVI数据
             tviFile = ['./Data/experiment/24-06-21/UUS-iEMG/TVIData_S1_M1_level' num2str(level) '_trial' num2str(trial) '_Dual_24-06-21_' num2str(pp) '.mat'];
             load(tviFile);
-            TVIData = cat(3, zeros(395, 128, 20), TVIData);
+
+            % 数据预处理
+            disp('开始数据预处理');
+            tic;
+            % TVIData = cat(3, zeros(395, 128, 20), TVIData);
+
             % filter the TVI data
-            % TVIDataFilter = TVIData(:, :, 3001:13000);
+            TVIDataFilter = TVIData(:, :, 3001:13000);
+
             % 轴向0.5MHz低通滤波
             [Be1, Ae1] = butter(4, 0.5/(7.7*4)*2, 'low');
             parfor i = 1:size(TVIDataFilter, 3)
@@ -34,17 +41,19 @@ for level = 1%:2
                 tmp = filtfilt(Be1, Ae1, tmp);
                 TVIDataFilter(:, :, i) = tmp;
             end
+
             % 时间5-100Hz带通滤波
-            [Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
-            for r = 1:size(TVIDataFilter, 1)
-                parfor c = 1:size(TVIDataFilter, 2)
-                    tmp = squeeze(TVIDataFilter(r, c, :));
-                    tmp = filtfilt(Be2, Ae2, tmp);
-                    TVIDataFilter(r, c, :) = tmp;
-                end
-            end
+            % [Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
+            % for r = 1:size(TVIDataFilter, 1)
+            %     parfor c = 1:size(TVIDataFilter, 2)
+            %         tmp = squeeze(TVIDataFilter(r, c, :));
+            %         tmp = filtfilt(Be2, Ae2, tmp);
+            %         TVIDataFilter(r, c, :) = tmp;
+            %     end
+            % end
+
             % 对每一列降采样
-            TVITmp = zeros(128, size(TVIDataFilter, 2), size(TVIDataFilter, 3));
+            % TVITmp = zeros(128, size(TVIDataFilter, 2), size(TVIDataFilter, 3));
             parfor i = 1:size(TVIDataFilter, 3)
                 tmp = TVIDataFilter(:, :, i);
                 tmp = resample(tmp, 128, 395);
@@ -58,7 +67,7 @@ for level = 1%:2
             %%
             disp('开始数据迭代');
             tic;
-            [M, N, ~] = size(TVIDataFilter);
+            [M, N, L] = size(TVIDataFilter);
             % 窗口大小
             Row = 8; Col = 8;
             % 窗口移动距离
@@ -72,18 +81,23 @@ for level = 1%:2
             tmpSources = cell(numRows*numCols, 1);
             tmpDecompoPulses = cell(numRows*numCols, 1);
             tmpCoV = cell(numRows*numCols, 1);
-            tmpWFirst = cell(numRows*numCols, 1);
-            tmpSourceFirst = cell(numRows*numCols, 1);
+            % tmpWFirst = cell(numRows*numCols, 1);
+            tmpTwitches = cell(numRows*numCols, 1);
 
             parfor kkk = 1:(numRows*numCols)
                 r = ceil(kkk / numCols);
                 c = mod(kkk-1, numCols) + 1;
+
+                % 划取处理窗口
                 disp(['row=' num2str(r) ',col=' num2str(c)]);
                 winRow = (1:Row)+(r-1)*dRow;
                 winCol = (1:Col)+(c-1)*dCol;
 
+                winRow(winRow>M) = [];
+                winCol(winCol>N) = [];
+
                 TVIDataWin = TVIDataFilter(winRow, winCol, :);
-                TVIDataWin = reshape(TVIDataWin, Row*Col, []);
+                TVIDataWin = reshape(TVIDataWin, length(winRow)*length(winCol), []);
 
                 % 2.沿着时间进行Z-score
                 TVIDataWin = (TVIDataWin - mean(TVIDataWin, 2)) ./ std(TVIDataWin, 0, 2);
@@ -92,7 +106,7 @@ for level = 1%:2
 
                 % 3.数据拓展
                 eY = extend(TVIDataWin, exFactor);
-                eY = eY(:, 1:size(TVIDataWin, 2));
+                eY = eY(:, 1:L);
 
                 % 4.在每个维度上减去均值
                 eY = stripmean(eY, 'st');
@@ -113,17 +127,17 @@ for level = 1%:2
                 V_new = V(:, 1:ii);
                 % 白化矩阵WM，采用PCA白化格式
                 % WM = sqrt(inv(D)) * V';
-                WM = sqrt(inv(D_new)) * V_new';
+                WM = sqrt(D_new)\V_new';
                 % 白化后的数据
                 Z = WM * eY;
 
                 % 6.初始化矩阵B
                 B = zeros(ii, numCompo);
-                source = zeros(size(eY, 2), numCompo);
+                sources = zeros(size(eY, 2), numCompo);
                 decompo_pulses = cell(1, numCompo);
                 CoV = zeros(1, numCompo);
-                sourcesFirst = zeros(size(eY, 2), numCompo);
-                wFirst = zeros(ii, numCompo);
+                twitches = zeros(size(eY, 2), numCompo);
+                % wFirst = zeros(ii, numCompo);
 
                 % 7.迭代更新
                 for i = 1:numCompo
@@ -146,8 +160,8 @@ for level = 1%:2
                         end
                     end
                     % 一阶段结果存储
-                    sourcesFirst(:, i) = Z' * w_new;
-                    wFirst(:, i) = w_new;
+                    twitches(:, i) = Z' * w_new;
+                    % wFirst(:, i) = w_new;
 
                     CoV_new = Inf;
                     countcount = 0;
@@ -165,17 +179,17 @@ for level = 1%:2
 
                     % 存储结果
                     B(:, i) = w_new;
-                    source(:, i) = source_new;
+                    sources(:, i) = source_new;
                     decompo_pulses{i} = PT;
                     CoV(i) = CoV_new;
                 end
 
                 tmpB{kkk} = B;
-                tmpSources{kkk} = source;
+                tmpSources{kkk} = sources;
                 tmpDecompoPulses{kkk} = decompo_pulses;
                 tmpCoV{kkk} = CoV;
-                tmpWFirst{kkk} = wFirst;
-                tmpSourceFirst{kkk} = sourcesFirst;
+                % tmpWFirst{kkk} = wFirst;
+                tmpTwitches{kkk} = twitches;
             end
 
             toc;
@@ -185,10 +199,10 @@ for level = 1%:2
             DecompoResults.sources = reshape(tmpSources, numRows, numCols)';
             DecompoResults.decompo_pulses = reshape(tmpDecompoPulses, numRows, numCols)';
             DecompoResults.CoV = reshape(tmpCoV, numRows, numCols)';
-            DecompoResults.wFirst = reshape(tmpWFirst, numRows, numCols)';
-            DecompoResults.sourceFirst = reshape(tmpSourceFirst, numRows, numCols)';
+            % DecompoResults.wFirst = reshape(tmpWFirst, numRows, numCols)';
+            DecompoResults.twitches = reshape(tmpTwitches, numRows, numCols)';
 
-            save(['./Data/experiment/24-06-21/UUS-iEMG/S1M1L' num2str(level) 'T' num2str(trial) 'P' num2str(pp) '_USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
+            save(['./Data/experiment/24-06-21/UUS-iEMG/S1M1L' num2str(level) 'T' num2str(trial) '_USCBSS_compo' num2str(numCompo) '_' num2str(pp) '.mat'], 'DecompoResults', '-v7.3');
         end
     end
 end
