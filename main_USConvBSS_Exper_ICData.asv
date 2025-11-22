@@ -63,7 +63,7 @@ for sub = [16]%, 17, 18]
     tmpCoV = cell(numRows*numCols, 1);
     % tmpWFirst = cell(numRows*numCols, 1);
     tmpTwitches = cell(numRows*numCols, 1);
-    % tmpMsg = cell(numRows*numCols, 1);
+    tmpMsg = cell(numRows*numCols, 1);
 
     parfor kkk = 1:(numRows*numCols)
         r = ceil(kkk / numCols);
@@ -172,7 +172,7 @@ for sub = [16]%, 17, 18]
         tmpSources{kkk} = sources;
         tmpDecompoPulses{kkk} = decompo_pulses;
         tmpCoV{kkk} = CoV;
-        % tmpWFirst{kkk} = wFirst;
+        tmpWFirst{kkk} = wFirst;
         tmpTwitches{kkk} = twitches;
         % tmpMsg{kkk} = Msg;
     end
@@ -184,8 +184,8 @@ for sub = [16]%, 17, 18]
     DecompoResults.sources = reshape(tmpSources, numCols, numRows)';
     DecompoResults.decompo_pulses = reshape(tmpDecompoPulses, numCols, numRows)';
     DecompoResults.CoV = reshape(tmpCoV, numCols, numRows)';
-    % DecompoResults.wFirst = reshape(tmpWFirst, numCols, numRows)';
-    DecompoResults.twitches = reshape(tmpTwitches, numCols, numRows)';
+    DecompoResults.wFirst = reshape(tmpWFirst, numCols, numRows)';
+    DecompoResults.sourceFirst = reshape(tmpTwitches, numCols, numRows)';
     % DecompoResults.Msg = reshape(tmpMsg, numCols, numRows)';
 
     savepath = ['./Data/experiment/ICdata/R' num2str(sub)];
