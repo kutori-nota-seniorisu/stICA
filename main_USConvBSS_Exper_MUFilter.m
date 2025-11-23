@@ -18,11 +18,12 @@ saveCoV = [];
 fsampu = 1000;
 % 计算放电串的MAD，大于25ms则去除
 % 计算估计源在6-14Hz内的能量占比，小于20%则去除
-for r = 1:23
-    for c = 1:25
+[rn, cn] = size(DecompoResults.sources);
+for r = 1:rn
+    for c = 1:cn
         tmpPulses = DecompoResults.decompo_pulses{r, c};
         tmpSources = DecompoResults.sources{r, c};
-        tmpSourcesRaw = DecompoResults.sourceFirst{r, c};
+        tmpTwitches = DecompoResults.twitches{r, c};
         tmpCoV = DecompoResults.CoV{r, c};
 
         for mu = 1:length(tmpPulses)
@@ -45,7 +46,7 @@ for r = 1:23
                 saveCols(end+1) = c;
                 savePulses{end+1} = tmpPulses{mu};
                 saveSources(:, end+1) = tmpSources(:, mu);
-                saveTwitches(:, end+1) = tmpSourcesRaw(:, mu);
+                saveTwitches(:, end+1) = tmpTwitches(:, mu);
                 saveEnergyRatio(end+1) = energyRatio;
                 saveCoV(end+1) = tmpCoV(mu);
             end
@@ -245,11 +246,12 @@ median(PNRsAll)
 
 %% 绘制23*25个区域的估计源信号
 fsampu = 1000;
-for r = 1:23
-    for c = 1:25
+[rn, cn] = size(DecompoResults.sources);
+for r = 1:rn
+    for c = 1:cn
         tmpPulses = DecompoResults.decompo_pulses{r, c};
         tmpSources = DecompoResults.sources{r, c};
-        tmpSourcesRaw = DecompoResults.sourceFirst{r, c};
+        tmpTwitches = DecompoResults.twitches{r, c};
         tmpCoV = DecompoResults.CoV{r, c};
 
         ax = figure;
@@ -267,7 +269,7 @@ for r = 1:23
             energyRatio = energyInBand / energyTotal * 100;
 
             subplot(10,5,mu+floor((mu-1)/5)*5);
-            plot(tmpSourcesRaw(:,mu));
+            plot(tmpTwitches(:,mu));
             xlim([4000,8000]);
             xticks(4000:1000:8000);
             xticklabels(4:1:8);
@@ -284,7 +286,8 @@ for r = 1:23
         end
 
         set(gcf,'unit','normalized','position',[0,0,1,1]);
-        saveas(ax, ['./Results/R' sub '_LowPass/r' num2str(r) 'c' num2str(c)], 'png');
+        saveas(ax, ['./Results/L1T1P1/r' num2str(r) 'c' num2str(c)], 'png');
+        % saveas(ax, ['./Results/R' sub '_LowPass/r' num2str(r) 'c' num2str(c)], 'png');
         close;
     end
 end
@@ -377,43 +380,6 @@ ccMax = max(abs(cc), [], 3);
 % decompoSourceAll = decompoSourceAll(:, toKeep);
 % decompoCoVAll = decompoCoVAll(toKeep);
 % decompoPulseAll = decompoPulseAll(toKeep);
-
-%% 绘制筛选后的MU
-close all;
-fsampu = 1000;
-numMU = length(decompoMURaw);
-L = 30000;
-f = (0:1:L/2) * fsampu / L;
-for muii = 1:5%numMU
-    % 傅里叶变换
-    tmp = abs(fft(decompoMURaw(muii).source)/L);
-    sFFT = tmp(1:L/2+1);
-    sFFT(2:end-1) = 2*sFFT(2:end-1);
-    energyRatio = sum(sFFT(1:100)) / sum(sFFT);
-
-    figure;
-    subplot(4,1,1);
-    scatter(decompoMURaw(muii).pulse, ones(length(decompoMURaw(muii).pulse)), 1000, "black", '|');
-    xlim([0, L])
-    title('pulse train')
-
-    subplot(4,1,2);
-    plot(decompoMURaw(muii).sourceRaw);
-    % xlim([10000, 12000])
-    % ylim([-5, 5])
-    title('estimated source step1')
-
-    subplot(4,1,3);
-    plot(decompoMURaw(muii).source);
-    % xlim([10000, 12000])
-    % ylim([-2, 2])
-    title('estimated source step2')
-
-    subplot(4,1,4);
-    plot(f, sFFT);
-    title(['ratio='  num2str(energyRatio*100) '%']);
-    sgtitle(['MU #' num2str(muii)]);
-end
 
 %%
 figure;
