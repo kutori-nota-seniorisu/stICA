@@ -16,9 +16,9 @@ if isempty(gcp('nocreate'))
 end
 
 %% 算法主体
-for level = 1%:2
-    for trial = 1%:2
-        for pp = 1%:2
+for level = 1:2
+    for trial = 1:2
+        for pp = 1:2
 
             %% TVI数据预处理
             disp('导入数据');
@@ -168,7 +168,7 @@ for level = 1%:2
                     while true
                         CoV_old = CoV_new;
                         s = w_new' * Z;
-                        [source_new, PT, CoV_new, ~] = blindDeconvPeakFinding(s, fsampu, 20, 2, 20, 2);
+                        [source_new, PT, CoV_new, ~] = blindDeconvPeakFinding(s, fsampu, 20, 2, 50, 2);
                         w_new = mean(Z(:, PT), 2);
                         countcount = countcount + 1;
                         disp(['r=' num2str(r) '，c=' num2str(c) '，i=' num2str(i) '，二阶段迭代' num2str(countcount) '次']);
