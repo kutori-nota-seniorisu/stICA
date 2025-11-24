@@ -1,9 +1,9 @@
 % 对US分解得到的MU进行筛选
 clear; clc; close all;
 addpath('./Func');
-sub = '18';
+sub = '3';
 % 导入数据
-load(['./Data/experiment/ICdata/R' sub '/USCBSS_compo25_MPD50.mat']);
+load(['./Data/experiment/ICdata/R' sub '/USCBSS_compo25.mat']);
 
 %% step1 以MAD和能量占比筛选
 saveMUs = [];
@@ -152,7 +152,7 @@ end
 fprintf('\n');
 
 %% 保存分解筛选结果
-save(['./Data/experiment/ICdata/R' sub '/USCBSS_DecompResult_MPD50.mat'], 'decompoMURaw', 'decompoMUFiltered');
+save(['./Data/experiment/ICdata/R' sub '/USCBSS_DecompResult.mat'], 'decompoMURaw', 'decompoMUFiltered');
 
 %% 脉冲串匹配
 load(['./Data/experiment/ICdata/R' sub '/pulsesRef.mat']);

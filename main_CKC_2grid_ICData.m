@@ -7,7 +7,7 @@ fsamp = 2048;
 % US采样频率
 fsampu = 1000;
 
-for sub = 3%[3,4,5,7,10,11,12,14,15,16,17,18]
+for sub = [3,4,5,7,10,11,12,14,15,16,17,18]
     
     emgFile = ['./Data/experiment/ICdata/R' num2str(sub) '/R' num2str(sub) '.mat'];
     try
@@ -58,7 +58,7 @@ for sub = 3%[3,4,5,7,10,11,12,14,15,16,17,18]
         for mu = 1:length(pulsesAll)
             tmp = pulsesAll{mu};
             tmp = tmp(tmp >= edges(1) & tmp <= edges(2));
-            if length(tmp) < 10
+            if length(tmp) < 150
                 continue;
             end
             tmp = tmp - edges(1);
@@ -67,9 +67,8 @@ for sub = 3%[3,4,5,7,10,11,12,14,15,16,17,18]
         end
 
         plotDecomps(decomps{ni}.MUPulses, [], fsamp, 0, 0, []);
-        % xlim([edges(2), edges(2)+20480]/fsamp);
     end
-    % savepath = ['./Data/experiment/ICdata/R' num2str(sub) '/'];
-    % save([savepath 'R' num2str(sub) '_decomps.mat'], 'decomps');
-    % save([savepath 'pulsesRef.mat'], 'pulsesRef');
+    savepath = ['./Data/experiment/ICdata/R' num2str(sub) '/'];
+    save([savepath 'R' num2str(sub) '_decomps.mat'], 'decomps');
+    save([savepath 'pulsesRef.mat'], 'pulsesRef');
 end
