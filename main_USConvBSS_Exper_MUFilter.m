@@ -161,6 +161,9 @@ winSize = [0, 5]/1000*fsampu;
 % lim=100ms，转换成样本点作为输入参数
 lim = 100/1000*fsampu;
 
+fsampu = 1000;
+dIPI = round(0.010*fsampu);
+
 % decompoPulses = {};
 % for i = 1:length(decompoMUFiltered)
 %     decompoPulses{i} = decompoMUFiltered(i).pulse;
@@ -170,9 +173,9 @@ lim = 100/1000*fsampu;
 matchResultRaw = [];
 for i = 1:length(pulsesRef)
     for j = 1:length(decompoMUFiltered.MU)
-        [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(pulsesRef{i},decompoMUFiltered.Pulse{j},round(0.005*fsampu),0);
-        [Sen,FA,Pre,Spe,Acc] = accEvaluation(decompoMUFiltered.Pulse{j},pulsesRef{i},round(0.005*fsampu),100);
-        [rr, ~] = RoA(decompoMUFiltered.Pulse{j},pulsesRef{i},100, round(0.005*fsampu));
+        [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(pulsesRef{i},decompoMUFiltered.Pulse{j},dIPI,0);
+        [Sen,FA,Pre,Spe,Acc] = accEvaluation(decompoMUFiltered.Pulse{j},pulsesRef{i},dIPI,100);
+        [rr, ~] = RoA(decompoMUFiltered.Pulse{j},pulsesRef{i},100, dIPI);
         matchResultRaw(end+1,:) = [i,j,rr,Lag,Sens,Sen,Miss,FalseAlarms,FA,Specificity,Spe,Pre,Acc];
     end
 end
