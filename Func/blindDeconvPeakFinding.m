@@ -7,7 +7,7 @@ function [source, PT, CoV, w_new] = blindDeconvPeakFinding(S, fs, R, nMAD, MPD, 
 % 
 %
 % Inputs:
-%   S - estimated source
+%   S - estimated twitch
 %   fs - sample rate
 %   R - extend factor
 %   nMAD - the number of mean absolute distances

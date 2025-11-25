@@ -32,7 +32,7 @@ for level = 1:2
             % TVIData = cat(3, zeros(395, 128, 20), TVIData);
 
             % filter the TVI data
-            TVIDataFilter = TVIData(:, :, 3001:13000);
+            TVIDataFilter = TVIData(:, :, 5001:13000);
 
             % 轴向0.5MHz低通滤波
             [Be1, Ae1] = butter(4, 0.5/(7.7*4)*2, 'low');
@@ -154,7 +154,7 @@ for level = 1:2
                         w_new = w_new / norm(w_new);
                         % 记录迭代次数
                         iterCount = iterCount + 1;
-                        if abs(w_new'*w_old - 1) < Tolx || iterCount >= 10000
+                        if abs(w_new'*w_old - 1) < Tolx || iterCount >= 1000
                             disp(['compo=' num2str(i) '，一阶段迭代完成，本次迭代' num2str(iterCount) '次']);
                             break;
                         end

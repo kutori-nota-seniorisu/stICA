@@ -1,9 +1,9 @@
 % 对US分解得到的MU进行筛选
 clear; clc; close all;
 addpath('./Func');
-% sub = '3';
+sub = '3';
 % 导入数据
-load(['./Data/experiment/24-06-21/UUS-iEMG/S1M1L1T1_USCBSS_compo25_2.mat']);
+load(['./Data/experiment/ICdata/R' sub '/USCBSS_compo25.mat']);
 
 %% step1 以MAD和能量占比筛选
 saveMUs = [];
@@ -402,20 +402,3 @@ xticks(0:1000:4000);
 xticklabels(0:1:4);
 xlabel('t/s'); ylabel('amplitude');
 title('二阶段迭代结果')
-
-
-%%
-numMU = length(decompoMURaw.MU);
-for i = 1:numMU
-    sss = decompoMURaw.Source(:, i);
-    ttt = decompoMURaw.Twitch(:, i);
-    ppp = decompoMURaw.Pulse{i};
-    figure;
-    subplot(2,1,1);
-    plot(ttt);
-    subplot(2,1,2);
-    plot(sss);
-    hold on;
-    plot(ppp, sss(ppp), 'ro');
-    set(gcf,'unit','normalized','position',[0.3,0.4,0.4,0.3]);
-end
