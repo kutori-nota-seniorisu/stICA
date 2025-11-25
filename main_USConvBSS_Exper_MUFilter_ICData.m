@@ -1,7 +1,7 @@
 % 对US分解得到的MU进行筛选
 clear; clc; close all;
 addpath('./Func');
-sub = '3';
+sub = '16';
 % 导入数据
 load(['./Data/experiment/ICdata/R' sub '/USCBSS_compo25.mat']);
 
@@ -173,9 +173,9 @@ dIPI = round(0.010*fsampu);
 matchResultRaw = [];
 for i = 1:length(pulsesRef)
     for j = 1:length(decompoMUFiltered.MU)
-        [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(pulsesRef{i},decompoMUFiltered.Pulse{j},dIPI,0);
-        [Sen,FA,Pre,Spe,Acc] = accEvaluation(decompoMUFiltered.Pulse{j},pulsesRef{i},dIPI,100);
-        [rr, ~] = RoA(decompoMUFiltered.Pulse{j},pulsesRef{i},100, dIPI);
+        [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(pulsesRef{i}, decompoMUFiltered.Pulse{j}, dIPI, 0);
+        [Sen,FA,Pre,Spe,Acc] = accEvaluation(decompoMUFiltered.Pulse{j}, pulsesRef{i}, dIPI, 100);
+        [rr, ~] = RoA(decompoMUFiltered.Pulse{j}, pulsesRef{i}, 100, dIPI);
         matchResultRaw(end+1,:) = [i,j,rr,Lag,Sens,Sen,Miss,FalseAlarms,FA,Specificity,Spe,Pre,Acc];
     end
 end
