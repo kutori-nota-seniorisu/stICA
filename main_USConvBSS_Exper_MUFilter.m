@@ -218,6 +218,18 @@ plotDecomps(pulsesRef, [], fsampu, 0, 0, []);
 % 
 % matchResultRaw = array2table(matchResultRaw, 'VariableNames', {'ref', 'decomp', 'Lag', 'TP', 'FP', 'FN', 'match ratio', 'RoA'});
 
+%% 参考脉冲
+data = importdata('./Data/iEMG/24-06-21/iEMG_S1_M1_level1_trial1_24-06-21_UUS.eaf'); % 读取eaf文件
+fsampu = 1000; % 采样率
+muNum = max(data.data(:,2)); % MU的个数
+iPulses = {};
+for mu = 1:muNum
+    % iPulses就是这个eaf文件里分解得到的spike train，每个cell表示一个MU，里面的数字是该MU每次放电的时刻
+    iPulses{mu} = round(data.data(find(data.data(:,2)==mu),1)'*fsampu);
+    CoV(mu) = std(diff(iPulses{mu}))/mean(diff(iPulses{mu}));
+end
+plotDecomps(iPulses, [], fsampu, 0, 0, []);
+
 %% 计算筛选后MU的PNR
 for sub = 16%[3,4,5,7,10,11,12,14,15,16,17,18]
     % 导入数据
@@ -290,6 +302,54 @@ for r = 1:rn
 
         set(gcf,'unit','normalized','position',[0,0,1,1]);
         saveas(ax, ['./Results/L1T1P1/r' num2str(r) 'c' num2str(c)], 'png');
+        % saveas(ax, ['./Results/R' sub '_LowPass/r' num2str(r) 'c' num2str(c)], 'png');
+        close;
+    end
+end
+
+%% 2s结果
+fsampu = 1000;
+[rn, cn] = size(DecompoResults.sources);
+for r = 1:rn
+    for c = 1:cn
+        tmpPulses = DecompoResults.decompo_pulses{r, c};
+        tmpSources = DecompoResults.sources{r, c};
+        tmpTwitches = DecompoResults.twitches{r, c};
+        tmpCoV = DecompoResults.CoV{r, c};
+
+        ax = figure;
+        for mu = 1:length(tmpPulses)
+            % 计算MAD，单位为ms
+            MAD = mad(diff(tmpPulses{mu}/fsampu*1000));
+            % 计算能量占比
+            [psd, freq] = pwelch(tmpSources(:, mu), [], [], [], fsampu);
+            % frequency band of interest
+            freqbandOI = [6, 14];
+            idxBand = freq >= freqbandOI(1) & freq <= freqbandOI(2);
+            idxTotal = freq > 0;
+            energyInBand = trapz(freq(idxBand), psd(idxBand));
+            energyTotal = trapz(freq(idxTotal), psd(idxTotal));
+            energyRatio = energyInBand / energyTotal * 100;
+
+            subplot(10,5,mu+floor((mu-1)/5)*5);
+            plot(tmpTwitches(:,mu));
+            % xlim([4000,8000]);
+            % xticks(4000:1000:8000);
+            xticklabels(0:1:2);
+            xlabel('t/s'); ylabel('amplitude');
+            title(['twitch mu=' num2str(mu)])
+
+            subplot(10,5,mu+ceil(mu/5)*5);
+            plot(tmpSources(:,mu));
+            % xlim([4000,8000]);
+            % xticks(4000:1000:8000);
+            xticklabels(0:1:2);
+            xlabel('t/s'); ylabel('amplitude');
+            title(['source mu=' num2str(mu) '，MAD=' num2str(MAD) ',ER=' num2str(energyRatio) '%']);
+        end
+
+        set(gcf,'unit','normalized','position',[0,0,1,1]);
+        saveas(ax, ['./Results/L1T1P1_3~5s/r' num2str(r) 'c' num2str(c)], 'png');
         % saveas(ax, ['./Results/R' sub '_LowPass/r' num2str(r) 'c' num2str(c)], 'png');
         close;
     end
@@ -413,9 +473,37 @@ for i = 1:numMU
     figure;
     subplot(2,1,1);
     plot(ttt);
+    xticklabels(0:1:10);
+    xlabel('t (s)')
+    title('twitch')
     subplot(2,1,2);
     plot(sss);
     hold on;
     plot(ppp, sss(ppp), 'ro');
+    xticklabels(0:1:10);
+    xlabel('t (s)')
+    title('estimated source')
+    set(gcf,'unit','normalized','position',[0.3,0.4,0.4,0.3]);
+end
+
+%%
+numMU = length(decompoMUFiltered.MU);
+for i = 1:numMU
+    sss = decompoMUFiltered.Source(:, i);
+    ttt = decompoMUFiltered.Twitch(:, i);
+    ppp = decompoMUFiltered.Pulse{i};
+    figure;
+    subplot(2,1,1);
+    plot(ttt);
+    xticklabels(0:1:10);
+    xlabel('t (s)')
+    title('twitch')
+    subplot(2,1,2);
+    plot(sss);
+    hold on;
+    plot(ppp, sss(ppp), 'ro');
+    xticklabels(0:1:10);
+    xlabel('t (s)')
+    title('estimated source')
     set(gcf,'unit','normalized','position',[0.3,0.4,0.4,0.3]);
 end

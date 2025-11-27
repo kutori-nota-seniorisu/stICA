@@ -16,9 +16,9 @@ if isempty(gcp('nocreate'))
 end
 
 %% 算法主体
-for level = 1:2
-    for trial = 1:2
-        for pp = 1:2
+for level = 1%:2
+    for trial = 1%:2
+        for pp = 1%:2
 
             %% TVI数据预处理
             disp('导入数据');
@@ -32,7 +32,7 @@ for level = 1:2
             % TVIData = cat(3, zeros(395, 128, 20), TVIData);
 
             % filter the TVI data
-            TVIDataFilter = TVIData(:, :, 5001:13000);
+            TVIDataFilter = TVIData(:, :, 7001:9000);
 
             % 轴向0.5MHz低通滤波
             [Be1, Ae1] = butter(4, 0.5/(7.7*4)*2, 'low');
@@ -43,14 +43,14 @@ for level = 1:2
             end
 
             % 时间5-100Hz带通滤波
-            % [Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
-            % for r = 1:size(TVIDataFilter, 1)
-            %     parfor c = 1:size(TVIDataFilter, 2)
-            %         tmp = squeeze(TVIDataFilter(r, c, :));
-            %         tmp = filtfilt(Be2, Ae2, tmp);
-            %         TVIDataFilter(r, c, :) = tmp;
-            %     end
-            % end
+            [Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
+            for r = 1:size(TVIDataFilter, 1)
+                parfor c = 1:size(TVIDataFilter, 2)
+                    tmp = squeeze(TVIDataFilter(r, c, :));
+                    tmp = filtfilt(Be2, Ae2, tmp);
+                    TVIDataFilter(r, c, :) = tmp;
+                end
+            end
 
             % 对每一列降采样
             % TVITmp = zeros(128, size(TVIDataFilter, 2), size(TVIDataFilter, 3));
@@ -202,7 +202,7 @@ for level = 1:2
             % DecompoResults.wFirst = reshape(tmpWFirst, numRows, numCols)';
             DecompoResults.twitches = reshape(tmpTwitches, numRows, numCols)';
 
-            save(['./Data/experiment/24-06-21/UUS-iEMG/S1M1L' num2str(level) 'T' num2str(trial) '_USCBSS_compo' num2str(numCompo) '_' num2str(pp) '.mat'], 'DecompoResults', '-v7.3');
+            save(['./Data/experiment/24-06-21/UUS-iEMG/S1M1L' num2str(level) 'T' num2str(trial) '_USCBSS_compo' num2str(numCompo) '_' num2str(pp) '_2s1.mat'], 'DecompoResults', '-v7.3');
         end
     end
 end
