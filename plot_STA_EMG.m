@@ -2,7 +2,6 @@
 clear; clc; close all;
 addpath('./Func');
 
-% for sub = [16, 17]
 sub = 16;
 disp(['Sub=' num2str(sub)]);
 load(['./Data/experiment/ICdata/R' num2str(sub) '/pulsesRef.mat']);

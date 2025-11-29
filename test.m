@@ -98,21 +98,7 @@ title('Ref Source')
 set(gcf,'unit','normalized','position',[0.05,0.1,0.9,0.6]);
 
 %%
-for ni = 1:2
-    IPTs = decomps{ni}.IPTs;
-    PNRs = decomps{ni}.PNRs;
-    for i = 1:size(IPTs, 1)
-        figure;
-        plot(IPTs(i, :));
-        hold on;
-        plot(edges(2), IPTs(i, edges(2)), 'ro');
-        plot(edges(1), IPTs(i, edges(1)), 'ro');
-        set(gcf,'unit','normalized','position',[0.05,0.1,0.9,0.6]);
-        title(num2str(PNRs(i)));
-        % xlim([edges(2), edges(1)])
-        % ylim([0, 1e-3])
-    end
-end
+
 
 %%
 for ni = 1:2
