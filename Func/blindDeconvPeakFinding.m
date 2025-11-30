@@ -55,25 +55,14 @@ while true
     % 记录迭代次数
     iterCount = iterCount + 1;
     if abs(w_new'*w_old - 1) < Tolx || iterCount >= 1000
-        disp(['迭代完成，本次迭代' num2str(iterCount) '次']);
+        % disp(['迭代完成，本次迭代' num2str(iterCount) '次']);
         break;
     end
-    % if iterCount == 1000
-    %     disp('迭代次数达到上限，迭代终止');
-    %     break;
-    % end
 end
 
 % 提取放电时刻
 source = w_new' * Z;
-% w_new = w_new * (1 - 2 * (abs(max(source)) <= abs(min(source))));
-% source = source * (1 - 2 * (abs(max(source)) <= abs(min(source))));
-MAD = mean(abs(source - mean(source)));
-[~, PT] = findpeaks(source, 'MinPeakHeight', nMAD*MAD, 'MinPeakDistance', MPD*(fs/1000));
-% if isempty(PT)
-%     CoV = Inf;
-%     % save('wrong.mat', 'source', 'w_new');
-%     return;
-% end
+[~, PT] = findpeaks(source, 'MinPeakHeight', nMAD*mad(source), 'MinPeakDistance', MPD*(fs/1000));
+
 % 计算变异系数
 CoV = std(diff(PT)) / mean(diff(PT));

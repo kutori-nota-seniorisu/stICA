@@ -12,7 +12,7 @@ load(['F:/EEEMG/stICA/Data/simulation/MU_time_response/' time_datasets '/ipulses
 
 muNum = length(ipulses);
 
-for mu = 5%1:muNum
+for mu = 1:muNum
     % 脉冲串长度
     L = length(ipulses{mu});
 

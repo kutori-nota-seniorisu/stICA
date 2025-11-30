@@ -75,21 +75,19 @@ corrThreshold = 0.3;  % 相关系数阈值
 % 初始化相关系数矩阵
 crossCorrMatrix = zeros(numSources, numSources);
 
-% 计算每对信号的最大互相关系数（考虑时移）
-for i = 1:numSources
-    for j = i+1:numSources  % 只计算上三角部分，避免重复
-        % 计算互相关系数，考虑时移
-        [corrVals, ~] = xcorr(sources(:, i), sources(:, j), 'coeff');
-        % 取绝对值最大值（考虑正负相关）
-        maxCorr = max(abs(corrVals));
-        crossCorrMatrix(i,j) = maxCorr;
-        crossCorrMatrix(j,i) = maxCorr;  % 对称矩阵
+crossCorrMatrix = abs(corr(sources));
 
-        % [corrVals, ~] = corr(sources(:, i), sources(:, j));
-        % crossCorrMatrix(i,j) = abs(corrVals);
-        % crossCorrMatrix(j,i) = abs(corrVals);
-    end
-end
+% 计算每对信号的最大互相关系数（考虑时移）
+% for i = 1:numSources
+%     for j = i+1:numSources  % 只计算上三角部分，避免重复
+%         % 计算互相关系数，考虑时移
+%         [corrVals, ~] = xcorr(sources(:, i), sources(:, j), 'coeff');
+%         % 取绝对值最大值（考虑正负相关）
+%         maxCorr = max(abs(corrVals));
+%         crossCorrMatrix(i,j) = maxCorr;
+%         crossCorrMatrix(j,i) = maxCorr;  % 对称矩阵
+%     end
+% end
 
 % 第三步：筛选处理
 selectedIndices = true(1, numSources);  % 标记哪些元素被保留
@@ -164,12 +162,6 @@ lim = 100/1000*fsampu;
 fsampu = 1000;
 dIPI = round(0.010*fsampu);
 
-% decompoPulses = {};
-% for i = 1:length(decompoMUFiltered)
-%     decompoPulses{i} = decompoMUFiltered(i).pulse;
-% end
-% [matchResult, matchResultRaw] = PulseMatch(decompoMUFiltered.Pulse, pulsesRef, 0.3, 1000);
-
 matchResultRaw = [];
 for i = 1:length(pulsesRef)
     for j = 1:length(decompoMUFiltered.MU)
@@ -180,6 +172,21 @@ for i = 1:length(pulsesRef)
     end
 end
 matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc'});
+
+
+
+matchResultRaw = [];
+for i = 1:length(decompoMUFiltered.MU)
+    for j = 1:length(decompoMUFiltered.MU)
+        [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(decompoMUFiltered.Pulse{i}, decompoMUFiltered.Pulse{j}, dIPI, 0);
+        [Sen,FA,Pre,Spe,Acc] = accEvaluation(decompoMUFiltered.Pulse{j}, decompoMUFiltered.Pulse{i}, dIPI, 100);
+        [rr, ~] = RoA(decompoMUFiltered.Pulse{j}, decompoMUFiltered.Pulse{i}, 100, dIPI);
+        matchResultRaw(end+1,:) = [i,j,rr,Lag,Sens,Sen,Miss,FalseAlarms,FA,Specificity,Spe,Pre,Acc];
+    end
+end
+matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc'});
+
+
 
 plotDecomps(decompoMUFiltered.Pulse, [], fsampu, 0, 0, []);
 plotDecomps(decompoMURaw.Pulse, [], fsampu, 0, 0, []);
@@ -245,8 +252,6 @@ mean(PNRsAll)
 std(PNRsAll)
 median(PNRsAll)
 
-% plotDecomps({pulsesRef{5},decompoMUFiltered(2).pulse}, [], 1000, 0, 0, []);
-
 %% 绘制23*25个区域的估计源信号
 fsampu = 1000;
 [rn, cn] = size(DecompoResults.sources);
@@ -289,8 +294,7 @@ for r = 1:rn
         end
 
         set(gcf,'unit','normalized','position',[0,0,1,1]);
-        saveas(ax, ['./Results/L1T1P1/r' num2str(r) 'c' num2str(c)], 'png');
-        % saveas(ax, ['./Results/R' sub '_LowPass/r' num2str(r) 'c' num2str(c)], 'png');
+        saveas(ax, ['./Results/R' sub '_LowPass/r' num2str(r) 'c' num2str(c)], 'png');
         close;
     end
 end

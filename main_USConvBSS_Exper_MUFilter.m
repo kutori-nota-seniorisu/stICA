@@ -1,7 +1,6 @@
 % 对US分解得到的MU进行筛选
 clear; clc; close all;
 addpath('./Func');
-% sub = '3';
 % 导入数据
 load(['./Data/experiment/24-06-21/UUS-iEMG/S1M1L1T1_USCBSS_compo25_2.mat']);
 
@@ -14,8 +13,9 @@ saveSources = [];
 saveTwitches = [];
 saveEnergyRatio = [];
 saveCoV = [];
+saveMAD = [];
 
-fsampu = 1000;
+fsampu = 2000;
 % 计算放电串的MAD，大于25ms则去除
 % 计算估计源在6-14Hz内的能量占比，小于20%则去除
 [rn, cn] = size(DecompoResults.sources);
@@ -39,7 +39,7 @@ for r = 1:rn
             energyTotal = trapz(freq(idxTotal), psd(idxTotal));
             energyRatio = energyInBand / energyTotal * 100;
 
-            if MAD <= 25 && energyRatio >= 20
+            if energyRatio >= 20 && MAD <= 100
                 disp(['r=' num2str(r) ',c=' num2str(c) ',mu=' num2str(mu) '保留！']);
                 saveMUs(end+1) = mu;
                 saveRows(end+1) = r;
@@ -48,6 +48,7 @@ for r = 1:rn
                 saveSources(:, end+1) = tmpSources(:, mu);
                 saveTwitches(:, end+1) = tmpTwitches(:, mu);
                 saveEnergyRatio(end+1) = energyRatio;
+                saveMAD(end+1) = MAD;
                 saveCoV(end+1) = tmpCoV(mu);
             end
         end
@@ -60,11 +61,12 @@ decompoMURaw.Pulse = savePulses;
 decompoMURaw.Source = saveSources;
 decompoMURaw.Twitch = saveTwitches;
 decompoMURaw.ER = saveEnergyRatio;
+decompoMURaw.MAD = saveMAD;
 decompoMURaw.CoV = saveCoV;
 
 clear saveMUs saveRows saveCols savePulses saveSources saveTwitches saveEnergyRatio saveCoV;
 
-%% step2 以互相关系数为标准去重
+%% step2.1 以互相关系数为标准去重
 % 第一步：提取所有source信号
 sources = decompoMURaw.Source;
 numSources = length(decompoMURaw.MU);
@@ -75,21 +77,10 @@ corrThreshold = 0.3;  % 相关系数阈值
 % 初始化相关系数矩阵
 crossCorrMatrix = zeros(numSources, numSources);
 
-% 计算每对信号的最大互相关系数（考虑时移）
-for i = 1:numSources
-    for j = i+1:numSources  % 只计算上三角部分，避免重复
-        % 计算互相关系数，考虑时移
-        [corrVals, ~] = xcorr(sources(:, i), sources(:, j), 'coeff');
-        % 取绝对值最大值（考虑正负相关）
-        maxCorr = max(abs(corrVals));
-        crossCorrMatrix(i,j) = maxCorr;
-        crossCorrMatrix(j,i) = maxCorr;  % 对称矩阵
-
-        % [corrVals, ~] = corr(sources(:, i), sources(:, j));
-        % crossCorrMatrix(i,j) = abs(corrVals);
-        % crossCorrMatrix(j,i) = abs(corrVals);
-    end
-end
+% sources每一列的均值都近似于零，因而corr的值与xcorr在lag=0处的值近似相等
+% 使用corr计算，会忽视具有时延的相似性，因而导致冗余保留。（是否存在时延相似？）
+% 那就筛两遍。第一次用corr初步筛选，第二次用xcorr精细筛选。
+crossCorrMatrix = abs(corr(sources));
 
 % 第三步：筛选处理
 selectedIndices = true(1, numSources);  % 标记哪些元素被保留
@@ -129,11 +120,12 @@ decompoMUFiltered.Pulse = decompoMURaw.Pulse(selectedIndices);
 decompoMUFiltered.Source = decompoMURaw.Source(:, selectedIndices);
 decompoMUFiltered.Twitch = decompoMURaw.Twitch(:, selectedIndices);
 decompoMUFiltered.ER = decompoMURaw.ER(selectedIndices);
+decompoMUFiltered.MAD = decompoMURaw.MAD(selectedIndices);
 decompoMUFiltered.CoV = decompoMURaw.CoV(selectedIndices);
 
 % 输出结果信息
 fprintf('原始元素数量: %d\n', numSources);
-fprintf('筛选后元素数量: %d\n', length(decompoMUFiltered.MU));
+fprintf('保留元素数量: %d\n', length(decompoMUFiltered.MU));
 fprintf('删除元素数量: %d\n', numSources - length(decompoMUFiltered.MU));
 
 % 显示被保留的索引
@@ -151,8 +143,132 @@ else
 end
 fprintf('\n');
 
-%% 保存分解筛选结果
-save(['./Data/experiment/ICdata/R' sub '/USCBSS_DecompResult.mat'], 'decompoMURaw', 'decompoMUFiltered');
+%% step2.2 以互相关系数为标准去重
+% 第一步：提取所有source信号
+sources = decompoMUFiltered.Source;
+numSources = length(decompoMUFiltered.MU);
+
+% 第二步：计算带有时移的互相关系数矩阵
+corrThreshold = 0.3;  % 相关系数阈值
+
+% 初始化相关系数矩阵
+crossCorrMatrix = zeros(numSources, numSources);
+
+% sources每一列的均值都近似于零，因而corr的值与xcorr在lag=0处的值近似相等
+% 使用corr计算，会忽视具有时延的相似性，因而导致冗余保留。（是否存在时延相似？）
+% 那就筛两遍。第一次用corr初步筛选，第二次用xcorr精细筛选。
+% crossCorrMatrix = abs(corr(sources));
+
+% 计算每对信号的最大互相关系数（考虑时移）
+for i = 1:numSources
+    for j = i+1:numSources  % 只计算上三角部分，避免重复
+        % 计算互相关系数，考虑时移
+        [corrVals, ~] = xcorr(sources(:, i), sources(:, j), 'coeff');
+        % 取绝对值最大值（考虑正负相关）
+        maxCorr = max(abs(corrVals));
+        crossCorrMatrix(i,j) = maxCorr;
+        crossCorrMatrix(j,i) = maxCorr;  % 对称矩阵
+    end
+end
+
+% 第三步：筛选处理
+selectedIndices = true(1, numSources);  % 标记哪些元素被保留
+processedPairs = false(numSources, numSources);  % 标记哪些对已经处理过
+
+for i = 1:numSources
+    if ~selectedIndices(i)  % 如果已经被标记删除，跳过
+        continue;
+    end
+
+    for j = i+1:numSources
+        if ~selectedIndices(j) || processedPairs(i,j)  % 跳过已删除或已处理的配对
+            continue;
+        end
+
+        % 如果互相关系数大于阈值
+        if crossCorrMatrix(i, j) > corrThreshold
+            % 比较CoV，选择较小的一个
+            if decompoMUFiltered.CoV(i) <= decompoMUFiltered.CoV(j)
+                selectedIndices(j) = false;  % 删除第j个
+            else
+                selectedIndices(i) = false;  % 删除第i个
+                break;  % 如果第i个被删除，跳出内层循环
+            end
+        end
+
+        processedPairs(i,j) = true;
+        processedPairs(j,i) = true;
+    end
+end
+
+% 第四步：创建筛选后的结构体数组
+decompoMUFiltered.MU = decompoMUFiltered.MU(selectedIndices);
+decompoMUFiltered.Row = decompoMUFiltered.Row(selectedIndices);
+decompoMUFiltered.Col = decompoMUFiltered.Col(selectedIndices);
+decompoMUFiltered.Pulse = decompoMUFiltered.Pulse(selectedIndices);
+decompoMUFiltered.Source = decompoMUFiltered.Source(:, selectedIndices);
+decompoMUFiltered.Twitch = decompoMUFiltered.Twitch(:, selectedIndices);
+decompoMUFiltered.ER = decompoMUFiltered.ER(selectedIndices);
+decompoMUFiltered.MAD = decompoMUFiltered.MAD(selectedIndices);
+decompoMUFiltered.CoV = decompoMUFiltered.CoV(selectedIndices);
+
+% 输出结果信息
+fprintf('原始元素数量: %d\n', numSources);
+fprintf('保留元素数量: %d\n', length(decompoMUFiltered.MU));
+fprintf('删除元素数量: %d\n', numSources - length(decompoMUFiltered.MU));
+
+% 显示被保留的索引
+fprintf('被保留的索引: ');
+fprintf('%d ', find(selectedIndices));
+fprintf('\n');
+
+% 显示被删除的索引
+deletedIndices = find(~selectedIndices);
+fprintf('被删除的索引: ');
+if ~isempty(deletedIndices)
+    fprintf('%d ', deletedIndices);
+else
+    fprintf('无');
+end
+fprintf('\n');
+
+%% 更加紧凑的子图绘制
+figNum = 30;
+numMU = length(decompoMUFiltered.MU);
+for axes = 1:ceil(numMU/figNum)
+    figure;
+    t = tiledlayout(6, 5, "TileSpacing", 'tight', 'Padding', 'compact');
+    for i = (axes-1)*figNum+1:min(axes*figNum, numMU)
+        source = decompoMUFiltered.Source(:, i);
+        pulse = decompoMUFiltered.Pulse{i};
+        ER = decompoMUFiltered.ER(i);
+        nexttile;
+        plot(source);
+        hold on;
+        plot(pulse, source(pulse), 'ro');
+        title(['MU # ' num2str(i) ',ER=' num2str(ER)]);
+        xticks(0:1e4:3e4);
+        xticklabels(0:5:15);
+    end
+    xlabel(t, 'time (s)');
+    ylabel(t, 'amplitude');
+end
+
+numMU = length(decompoMUFiltered.MU);
+for axes = 1:ceil(numMU/figNum)
+    figure;
+    t = tiledlayout(6, 5, "TileSpacing", 'tight', 'Padding', 'compact');
+    for i = (axes-1)*figNum+1:min(axes*figNum, numMU)
+        source = decompoMUFiltered.Source(:, i);
+        [pxx, f] = pwelch(source, [], [], [], fsampu);
+        nexttile;
+        % semilogy(f, pxx);
+        plot(f, pxx);
+        title(['MU # ' num2str(i)]);
+    end
+    xlabel(t, 'freq (s)');
+    ylabel(t, '功率谱密度');
+end
 
 %% 脉冲串匹配
 load(['./Data/experiment/ICdata/R' sub '/pulsesRef.mat']);
@@ -163,12 +279,6 @@ lim = 100/1000*fsampu;
 
 fsampu = 1000;
 dIPI = round(0.010*fsampu);
-
-% decompoPulses = {};
-% for i = 1:length(decompoMUFiltered)
-%     decompoPulses{i} = decompoMUFiltered(i).pulse;
-% end
-% [matchResult, matchResultRaw] = PulseMatch(decompoMUFiltered.Pulse, pulsesRef, 0.3, 1000);
 
 matchResultRaw = [];
 for i = 1:length(pulsesRef)
@@ -182,7 +292,7 @@ end
 matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc'});
 
 plotDecomps(decompoMUFiltered.Pulse, [], fsampu, 0, 0, []);
-plotDecomps(decompoMURaw.Pulse, [], fsampu, 0, 0, []);
+% plotDecomps(decompoMURaw.Pulse, [], fsampu, 0, 0, []);
 plotDecomps(pulsesRef, [], fsampu, 0, 0, []);
 
 % matchResultRaw = [];
@@ -219,16 +329,20 @@ plotDecomps(pulsesRef, [], fsampu, 0, 0, []);
 % matchResultRaw = array2table(matchResultRaw, 'VariableNames', {'ref', 'decomp', 'Lag', 'TP', 'FP', 'FN', 'match ratio', 'RoA'});
 
 %% 参考脉冲
-data = importdata('./Data/iEMG/24-06-21/iEMG_S1_M1_level1_trial1_24-06-21_UUS.eaf'); % 读取eaf文件
+data = importdata('./Data/EMG/24-06-21/iEMG_S1_M1_level1_trial1_24-06-21_UUS.eaf'); % 读取eaf文件
 fsampu = 1000; % 采样率
 muNum = max(data.data(:,2)); % MU的个数
-iPulses = {};
+pulsesRef = {};
 for mu = 1:muNum
     % iPulses就是这个eaf文件里分解得到的spike train，每个cell表示一个MU，里面的数字是该MU每次放电的时刻
-    iPulses{mu} = round(data.data(find(data.data(:,2)==mu),1)'*fsampu);
-    CoV(mu) = std(diff(iPulses{mu}))/mean(diff(iPulses{mu}));
+    tmp = round(data.data(find(data.data(:,2)==mu),1)'*fsampu);
+    tmp = tmp(tmp >= 3*fsampu & tmp <= 13*fsampu);
+    tmp = tmp - 3*fsampu;
+    pulsesRef{mu} = tmp;
+    CoV(mu) = std(diff(pulsesRef{mu}))/mean(diff(pulsesRef{mu}));
+    MAD(mu) = mad(diff(pulsesRef{mu}/fsampu*1000));
 end
-plotDecomps(iPulses, [], fsampu, 0, 0, []);
+plotDecomps(pulsesRef, [], fsampu, 0, 0, []);
 
 %% 计算筛选后MU的PNR
 for sub = 16%[3,4,5,7,10,11,12,14,15,16,17,18]

@@ -61,9 +61,7 @@ for sub = [16]%, 17, 18]
     tmpSources = cell(numRows*numCols, 1);
     tmpDecompoPulses = cell(numRows*numCols, 1);
     tmpCoV = cell(numRows*numCols, 1);
-    % tmpWFirst = cell(numRows*numCols, 1);
     tmpTwitches = cell(numRows*numCols, 1);
-    % tmpMsg = cell(numRows*numCols, 1);
 
     parfor kkk = 1:(numRows*numCols)
         r = ceil(kkk / numCols);
@@ -82,8 +80,6 @@ for sub = [16]%, 17, 18]
 
         % 2.沿着时间进行Z-score
         TVIDataWin = (TVIDataWin - mean(TVIDataWin, 2)) ./ std(TVIDataWin, 0, 2);
-        % figure;
-        % plot(TVIData');
 
         % 3.数据拓展
         eY = extend(TVIDataWin, exFactor);
@@ -106,7 +102,6 @@ for sub = [16]%, 17, 18]
         D_new = D(1:ii, 1:ii) - mean(diag(D(ii+1:end, ii+1:end))) * eye(ii);
         V_new = V(:, 1:ii);
         % 白化矩阵WM，采用PCA白化格式
-        % WM = sqrt(inv(D)) * V';
         WM = sqrt(D_new)\V_new';
         % 白化后的数据
         Z = WM * eY;
@@ -117,9 +112,6 @@ for sub = [16]%, 17, 18]
         decompo_pulses = cell(1, numCompo);
         CoV = zeros(1, numCompo);
         twitches = zeros(size(eY, 2), numCompo);
-        % wFirst = zeros(ii, numCompo);
-
-        % Msg = {};
 
         % 7.迭代更新
         for i = 1:numCompo
@@ -137,14 +129,12 @@ for sub = [16]%, 17, 18]
                 % 记录迭代次数
                 iterCount = iterCount + 1;
                 if abs(w_new'*w_old - 1) < Tolx || iterCount >= 1000
-                    disp(['r=' num2str(r) ',c=' num2str(c) ',i=' num2str(i) '，一阶段迭代完成，本次迭代' num2str(iterCount) '次']);
-                    % Msg{end+1} = sprintf('r=%d,c=%d,i=%d，一阶段迭代完成，本次迭代%d次', r, c, i, iterCount);
+                    disp(['r' num2str(r) 'c' num2str(c) ' #' num2str(i) ' 一阶段迭代' num2str(iterCount) '次']);
                     break;
                 end
             end
             % 一阶段结果存储
             twitches(:, i) = Z' * w_new;
-            % wFirst(:, i) = w_new;
 
             CoV_new = Inf;
             countcount = 0;
@@ -154,9 +144,8 @@ for sub = [16]%, 17, 18]
                 [source_new, PT, CoV_new, ~] = blindDeconvPeakFinding(s, fsampu, 20, 2, 50, 2);
                 w_new = mean(Z(:, PT), 2);
                 countcount = countcount + 1;
-                disp(['r=' num2str(r) ',c=' num2str(c) ',i=' num2str(i) '，二阶段迭代' num2str(countcount) '次']);
                 if CoV_new > CoV_old
-                    % Msg{end+1} = sprintf('r=%d,c=%d,i=%d，二阶段迭代%d次', r, c, i, countcount);
+                    disp(['r' num2str(r) 'c' num2str(c) ' #' num2str(i) ' 二阶段迭代' num2str(countcount) '次']);
                     break;
                 end
             end
@@ -172,9 +161,7 @@ for sub = [16]%, 17, 18]
         tmpSources{kkk} = sources;
         tmpDecompoPulses{kkk} = decompo_pulses;
         tmpCoV{kkk} = CoV;
-        % tmpWFirst{kkk} = wFirst;
         tmpTwitches{kkk} = twitches;
-        % tmpMsg{kkk} = Msg;
     end
 
     toc;
@@ -184,9 +171,7 @@ for sub = [16]%, 17, 18]
     DecompoResults.sources = reshape(tmpSources, numCols, numRows)';
     DecompoResults.decompo_pulses = reshape(tmpDecompoPulses, numCols, numRows)';
     DecompoResults.CoV = reshape(tmpCoV, numCols, numRows)';
-    % DecompoResults.wFirst = reshape(tmpWFirst, numCols, numRows)';
     DecompoResults.twitches = reshape(tmpTwitches, numCols, numRows)';
-    % DecompoResults.Msg = reshape(tmpMsg, numCols, numRows)';
 
     savepath = ['./Data/experiment/ICdata/R' num2str(sub)];
     if ~exist(savepath, 'dir')

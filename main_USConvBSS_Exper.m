@@ -15,8 +15,6 @@ if isempty(gcp('nocreate'))
     parpool;
 end
 
-%% 算法主体
-
 %% TVI数据预处理
 disp('导入数据');
 % 导入TVI数据
@@ -41,17 +39,16 @@ parfor i = 1:size(TVIDataFilter, 3)
 end
 
 % 时间5-100Hz带通滤波
-% [Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
-% for r = 1:size(TVIDataFilter, 1)
-%     parfor c = 1:size(TVIDataFilter, 2)
-%         tmp = squeeze(TVIDataFilter(r, c, :));
-%         tmp = filtfilt(Be2, Ae2, tmp);
-%         TVIDataFilter(r, c, :) = tmp;
-%     end
-% end
+[Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
+for r = 1:size(TVIDataFilter, 1)
+    parfor c = 1:size(TVIDataFilter, 2)
+        tmp = squeeze(TVIDataFilter(r, c, :));
+        tmp = filtfilt(Be2, Ae2, tmp);
+        TVIDataFilter(r, c, :) = tmp;
+    end
+end
 
 % 对每一列降采样
-% TVITmp = zeros(128, size(TVIDataFilter, 2), size(TVIDataFilter, 3));
 parfor i = 1:size(TVIDataFilter, 3)
     tmp = TVIDataFilter(:, :, i);
     tmp = resample(tmp, 128, 395);
@@ -62,7 +59,7 @@ clear TVITmp;
 toc;
 disp(['数据预处理用时' num2str(toc)]);
 
-%%
+%% USConvBSS算法主体
 disp('开始数据迭代');
 tic;
 [M, N, L] = size(TVIDataFilter);
@@ -79,7 +76,7 @@ tmpB = cell(numRows*numCols, 1);
 tmpSources = cell(numRows*numCols, 1);
 tmpDecompoPulses = cell(numRows*numCols, 1);
 tmpCoV = cell(numRows*numCols, 1);
-% tmpWFirst = cell(numRows*numCols, 1);
+tmpTwitchesFinal = cell(numRows*numCols, 1);
 tmpTwitches = cell(numRows*numCols, 1);
 
 parfor kkk = 1:(numRows*numCols)
@@ -99,8 +96,6 @@ parfor kkk = 1:(numRows*numCols)
 
     % 2.沿着时间进行Z-score
     TVIDataWin = (TVIDataWin - mean(TVIDataWin, 2)) ./ std(TVIDataWin, 0, 2);
-    % figure;
-    % plot(TVIData');
 
     % 3.数据拓展
     eY = extend(TVIDataWin, exFactor);
@@ -108,7 +103,6 @@ parfor kkk = 1:(numRows*numCols)
 
     % 4.在每个维度上减去均值
     eY = stripmean(eY, 'st');
-    % L = size(eY, 2);
 
     % 5.白化
     % 协方差矩阵特征值分解
@@ -124,23 +118,22 @@ parfor kkk = 1:(numRows*numCols)
     D_new = D(1:ii, 1:ii) - mean(diag(D(ii+1:end, ii+1:end))) * eye(ii);
     V_new = V(:, 1:ii);
     % 白化矩阵WM，采用PCA白化格式
-    % WM = sqrt(inv(D)) * V';
     WM = sqrt(D_new)\V_new';
     % 白化后的数据
     Z = WM * eY;
 
     % 6.初始化矩阵B
     B = zeros(ii, numCompo);
+    twitches = zeros(size(eY, 2), numCompo);
+    twitchesFinal = zeros(size(eY, 2), numCompo);
     sources = zeros(size(eY, 2), numCompo);
     decompo_pulses = cell(1, numCompo);
     CoV = zeros(1, numCompo);
-    twitches = zeros(size(eY, 2), numCompo);
-    % wFirst = zeros(ii, numCompo);
 
     % 7.迭代更新
     for i = 1:numCompo
         iterCount = 0;
-        w_new = randn(size(D_new, 1), 1);
+        w_new = randn(size(Z, 1), 1);
 
         while true
             w_old = w_new;
@@ -153,13 +146,12 @@ parfor kkk = 1:(numRows*numCols)
             % 记录迭代次数
             iterCount = iterCount + 1;
             if abs(w_new'*w_old - 1) < Tolx || iterCount >= 1000
-                disp(['compo=' num2str(i) '，一阶段迭代完成，本次迭代' num2str(iterCount) '次']);
+                disp(['r' num2str(r) 'c' num2str(c) ' #' num2str(i) ' 一阶段迭代' num2str(iterCount) '次']);
                 break;
             end
         end
         % 一阶段结果存储
         twitches(:, i) = Z' * w_new;
-        % wFirst(:, i) = w_new;
 
         CoV_new = Inf;
         countcount = 0;
@@ -169,8 +161,8 @@ parfor kkk = 1:(numRows*numCols)
             [source_new, PT, CoV_new, ~] = blindDeconvPeakFinding(s, fsampu, 20, 2, 50, 2);
             w_new = mean(Z(:, PT), 2);
             countcount = countcount + 1;
-            disp(['r=' num2str(r) '，c=' num2str(c) '，i=' num2str(i) '，二阶段迭代' num2str(countcount) '次']);
             if CoV_new > CoV_old
+                disp(['r' num2str(r) 'c' num2str(c) ' #' num2str(i) ' 二阶段迭代' num2str(countcount) '次']);
                 break;
             end
         end
@@ -178,6 +170,7 @@ parfor kkk = 1:(numRows*numCols)
         % 存储结果
         B(:, i) = w_new;
         sources(:, i) = source_new;
+        twitchesFinal(:, i) = s;
         decompo_pulses{i} = PT;
         CoV(i) = CoV_new;
     end
@@ -186,19 +179,22 @@ parfor kkk = 1:(numRows*numCols)
     tmpSources{kkk} = sources;
     tmpDecompoPulses{kkk} = decompo_pulses;
     tmpCoV{kkk} = CoV;
-    % tmpWFirst{kkk} = wFirst;
     tmpTwitches{kkk} = twitches;
+    tmpTwitchesFinal{kkk} = twitchesFinal;
 end
 
 toc;
 disp(['数据迭代用时' num2str(toc)]);
 
+%% 结果保存
+
 DecompoResults.B = reshape(tmpB, numRows, numCols)';
 DecompoResults.sources = reshape(tmpSources, numRows, numCols)';
+DecompoResults.twitches = reshape(tmpTwitches, numRows, numCols)';
+DecompoResults.twitchesFinal = reshape(tmpTwitchesFinal, numRows, numCols)';
 DecompoResults.decompo_pulses = reshape(tmpDecompoPulses, numRows, numCols)';
 DecompoResults.CoV = reshape(tmpCoV, numRows, numCols)';
-DecompoResults.twitches = reshape(tmpTwitches, numRows, numCols)';
 
-save('./Data/experiment/25-07-04/M1L1T1_USCBSS_compo25.mat', 'DecompoResults', '-v7.3');
+save('./Data/experiment/25-07-04/M1L1T1_USCBSS_compo25F.mat', 'DecompoResults', '-v7.3');
 
 % save(['./Data/experiment/24-06-21/UUS-iEMG/S1M1L' num2str(level) 'T' num2str(trial) '_USCBSS_compo' num2str(numCompo) '_' num2str(pp) '_2s1.mat'], 'DecompoResults', '-v7.3');
