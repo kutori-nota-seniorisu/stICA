@@ -25,7 +25,7 @@ load(tviFile);
 % 数据预处理
 disp('开始数据预处理');
 tic;
-TVIData = cat(3, zeros(395, 128, 20), TVIData);
+% TVIData = cat(3, zeros(395, 128, 20), TVIData);
 
 % filter the TVI data
 TVIDataFilter = TVIData;
@@ -195,6 +195,6 @@ DecompoResults.twitchesFinal = reshape(tmpTwitchesFinal, numRows, numCols)';
 DecompoResults.decompo_pulses = reshape(tmpDecompoPulses, numRows, numCols)';
 DecompoResults.CoV = reshape(tmpCoV, numRows, numCols)';
 
-save('./Data/experiment/25-07-04/M1L1T1_USCBSS_compo25F.mat', 'DecompoResults', '-v7.3');
+save('./Data/experiment/25-07-04/M1L1T1_USCBSS_compo25F2.mat', 'DecompoResults', '-v7.3');
 
 % save(['./Data/experiment/24-06-21/UUS-iEMG/S1M1L' num2str(level) 'T' num2str(trial) '_USCBSS_compo' num2str(numCompo) '_' num2str(pp) '_2s1.mat'], 'DecompoResults', '-v7.3');

@@ -249,6 +249,9 @@ for axes = 1:ceil(numMU/figNum)
         title(['MU # ' num2str(i) ',ER=' num2str(ER)]);
         xticks(0:1e4:3e4);
         xticklabels(0:5:15);
+        % xlim([4e3, 12e3]);
+        % xticks(4e3:2e3:12e3);
+        % xticklabels(2:1:6);
     end
     xlabel(t, 'time (s)');
     ylabel(t, 'amplitude');
@@ -277,7 +280,7 @@ winSize = [0, 5]/1000*fsampu;
 % lim=100ms，转换成样本点作为输入参数
 lim = 100/1000*fsampu;
 
-fsampu = 1000;
+fsampu = 2000;
 dIPI = round(0.010*fsampu);
 
 matchResultRaw = [];
@@ -294,6 +297,7 @@ matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA
 plotDecomps(decompoMUFiltered.Pulse, [], fsampu, 0, 0, []);
 % plotDecomps(decompoMURaw.Pulse, [], fsampu, 0, 0, []);
 plotDecomps(pulsesRef, [], fsampu, 0, 0, []);
+plotDecomps({pulsesRef{9}, decompoMUFiltered.Pulse{43}}, [], fsampu, 0, 0, []);
 
 % matchResultRaw = [];
 % for i = 1:length(pulsesRef)

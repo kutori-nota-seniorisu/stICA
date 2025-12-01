@@ -4,8 +4,8 @@ addpath('./Func');
 
 % EMG采样频率
 fsamp = 2048;
-
-% for sub = [3,4,5,7,10,11,12,14,15,16,17,18]
+% US采样频率
+fsampu = 2000;
 
 emgFile = './Data/EMG/25-07-04/M1L1T1.mat';
 try
@@ -56,6 +56,7 @@ for ni = 1:2
         tmp = decomps{ni}.MUPulses{mu};
         tmp = tmp(tmp >= edges(1) & tmp <= edges(2));
         tmp = tmp - edges(1);
+        tmp = round(tmp/fsamp*fsampu);
         pulsesRef{end+1} = tmp;
     end
 

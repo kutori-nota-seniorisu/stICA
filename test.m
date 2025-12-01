@@ -147,6 +147,18 @@ plot(TVISum);
 subplot(2,1,2);
 plot(f, P1);
 
+%% 取round会造成最大约0.5个样本点的误差，对应于0.25ms的误差。
+t = 0:1e-4:2;
+y1 = t*2000/2048;
+y2 = round(t*2000/2048);
+figure;
+plot(t,y1);
+hold on;
+plot(t,y2);
+legend('y1', 'y2');
+figure;
+plot(t, abs(y1-y2));
+
 %% ipulse和6PTM模型卷积，作为仿真数据
 % 模型ref: Variability of successive contractions subtracted from unfused tetanus of fast and slow motor units
 addpath('./Func');
