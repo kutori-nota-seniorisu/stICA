@@ -18,9 +18,9 @@ end
 newdata = Data';
 % newdata(newdata > 32768) = newdata(newdata > 32768) - 2^16;
 trigger = newdata(end-1, :);
-[~, edges] = maxk(diff(trigger), 2);
-edges = sort(edges);
-sEMG = newdata(1:end-2, :);
+[~, edges] = findpeaks(trigger, 'MinPeakDistance', 10000, 'MinPeakProminence', 0.3);
+sEMG = newdata(1:end-2, edges(1):edges(2));
+
 
 % 绘制trigger图像
 figure;
@@ -28,6 +28,11 @@ plot(trigger);
 hold on;
 plot(edges(1), trigger(edges(1)), 'ro');
 plot(edges(2), trigger(edges(2)), 'ro');
+drawnow;
+
+% figure;
+% plot(diff(trigger));
+% drawnow;
 
 %% CKC反解EMG
 pulsesRef = {};
@@ -40,7 +45,7 @@ for ni = 1:2
     decoderParameters.TimeDifference = 0;
     decoderParameters.SpatialDifference = 0;
     decoderParameters.ElectrodeType = 18; %13-5*13; 18-mouvi8*8%%%需要注意电极片位置
-    decoderParameters.BandpassFilter = 1; %10-500Hz带通滤波
+    decoderParameters.BandpassFilter = 1; %20-500Hz带通滤波
     decoderParameters.LineFilter = 1; %50Hz梳状滤波
     decoderParameters.ChannelFilter = 1; %去除不好的电极channel
     decoderParameters.extendingFactor = 10; %论文里是10c
@@ -62,10 +67,11 @@ for ni = 1:2
 
     plotDecomps(decomps{ni}.MUPulses, [], fsamp, 0, 0, []);
 end
-save('./Data/experiment/25-07-04/M1L1T1_decomps.mat', 'decomps', 'pulsesRef');
+% save('./Data/experiment/25-07-04/M1L1T1_decomps.mat', 'decomps', 'pulsesRef');
 
 %% 绘制IPT
 for ni = 1:2
+    plotDecomps(decomps{ni}.MUPulses, [], fsamp, 0, 0, []);
     IPTs = decomps{ni}.IPTs;
     PNRs = decomps{ni}.PNRs;
     MUPulses = decomps{ni}.MUPulses;
@@ -74,7 +80,6 @@ for ni = 1:2
         plot(IPTs(i, :));
         hold on;
         plot(MUPulses{i}, IPTs(i, MUPulses{i}), 'ro');
-        xline([edges(1), edges(2)], '--');
         set(gcf,'unit','normalized','position',[0.05,0.1,0.9,0.6]);
         title(num2str(PNRs(i)));
     end

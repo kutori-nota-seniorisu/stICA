@@ -129,7 +129,39 @@ title('source')
 subplot(4,1,4);
 plot(f, P11);
 % xlim([0,100]);
+%%
+mu = 5;
+fsampu = 2000;
+L = 30000;
 
+source = decompoMUFiltered.Source(:, mu);
+Y1 = fft(source);
+P21 = abs(Y1/L);
+P11 = P21(1:L/2+1);
+P11(2:end-1) = 2*P11(2:end-1);
+
+[Be, Ae] = butter(4, [5,50]/fsampu*2);
+sourceF = filtfilt(Be, Ae, source);
+Y2 = fft(sourceF);
+P22 = abs(Y2/L);
+P12 = P22(1:L/2+1);
+P12(2:end-1) = 2*P12(2:end-1);
+
+f = (0:1:L/2)*fsampu/L;
+
+figure;
+subplot(4,1,1);
+plot(source);
+title('source')
+subplot(4,1,2);
+plot(f, P11);
+
+subplot(4,1,3);
+plot(sourceF);
+title('source after filter')
+subplot(4,1,4);
+plot(f, P12);
+% xlim([0,100]);
 %%
 TVIData = cat(3, zeros(395, 128, 20), TVIData);
 % TVISum = squeeze(sum(sum(TVIData)));
@@ -146,6 +178,21 @@ subplot(2,1,1);
 plot(TVISum);
 subplot(2,1,2);
 plot(f, P1);
+
+%%
+fff = zeros(128,128);
+Row = 8; Col = 8;
+dRow = 4; dCol = 4;
+for mu=75%[4,5,11,20,21,22,54,55]
+    r = decompoMUFiltered.Row(mu);
+    c = decompoMUFiltered.Col(mu);
+    winRow = (1:Row)+(r-1)*dRow;
+    winCol = (1:Col)+(c-1)*dCol;
+    fff(winRow,winCol) = fff(winRow,winCol)+1;
+end
+figure;
+imagesc(fff);
+colorbar
 
 %% 取round会造成最大约0.5个样本点的误差，对应于0.25ms的误差。
 t = 0:1e-4:2;

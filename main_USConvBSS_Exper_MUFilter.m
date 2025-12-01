@@ -14,6 +14,9 @@ saveTwitches = [];
 saveEnergyRatio = [];
 saveCoV = [];
 saveMAD = [];
+saveTwitchesFinal = [];
+
+meanISI = [];
 
 fsampu = 2000;
 % 计算放电串的MAD，大于25ms则去除
@@ -25,6 +28,8 @@ for r = 1:rn
         tmpSources = DecompoResults.sources{r, c};
         tmpTwitches = DecompoResults.twitches{r, c};
         tmpCoV = DecompoResults.CoV{r, c};
+
+        tmpTwitchesFinal = DecompoResults.twitchesFinal{r, c};
 
         for mu = 1:length(tmpPulses)
             % 计算MAD，单位为ms
@@ -39,6 +44,8 @@ for r = 1:rn
             energyTotal = trapz(freq(idxTotal), psd(idxTotal));
             energyRatio = energyInBand / energyTotal * 100;
 
+            meanISI(r,c,mu) = mean(diff(tmpPulses{mu}/fsampu*1000));
+
             if energyRatio >= 20 && MAD <= 100
                 disp(['r=' num2str(r) ',c=' num2str(c) ',mu=' num2str(mu) '保留！']);
                 saveMUs(end+1) = mu;
@@ -50,6 +57,8 @@ for r = 1:rn
                 saveEnergyRatio(end+1) = energyRatio;
                 saveMAD(end+1) = MAD;
                 saveCoV(end+1) = tmpCoV(mu);
+
+                saveTwitchesFinal(:, end+1) = tmpTwitchesFinal(:, mu);
             end
         end
     end
@@ -63,6 +72,8 @@ decompoMURaw.Twitch = saveTwitches;
 decompoMURaw.ER = saveEnergyRatio;
 decompoMURaw.MAD = saveMAD;
 decompoMURaw.CoV = saveCoV;
+
+decompoMURaw.TwitchesFinal = saveTwitchesFinal;
 
 clear saveMUs saveRows saveCols savePulses saveSources saveTwitches saveEnergyRatio saveCoV;
 
@@ -122,6 +133,8 @@ decompoMUFiltered.Twitch = decompoMURaw.Twitch(:, selectedIndices);
 decompoMUFiltered.ER = decompoMURaw.ER(selectedIndices);
 decompoMUFiltered.MAD = decompoMURaw.MAD(selectedIndices);
 decompoMUFiltered.CoV = decompoMURaw.CoV(selectedIndices);
+
+decompoMUFiltered.TwitchesFinal = decompoMURaw.TwitchesFinal(:, selectedIndices);
 
 % 输出结果信息
 fprintf('原始元素数量: %d\n', numSources);
@@ -212,6 +225,8 @@ decompoMUFiltered.ER = decompoMUFiltered.ER(selectedIndices);
 decompoMUFiltered.MAD = decompoMUFiltered.MAD(selectedIndices);
 decompoMUFiltered.CoV = decompoMUFiltered.CoV(selectedIndices);
 
+decompoMUFiltered.TwitchesFinal = decompoMURaw.TwitchesFinal(:, selectedIndices);
+
 % 输出结果信息
 fprintf('原始元素数量: %d\n', numSources);
 fprintf('保留元素数量: %d\n', length(decompoMUFiltered.MU));
@@ -242,13 +257,20 @@ for axes = 1:ceil(numMU/figNum)
         source = decompoMUFiltered.Source(:, i);
         pulse = decompoMUFiltered.Pulse{i};
         ER = decompoMUFiltered.ER(i);
+        MAD = decompoMUFiltered.MAD(i);
         nexttile;
         plot(source);
         hold on;
         plot(pulse, source(pulse), 'ro');
-        title(['MU # ' num2str(i) ',ER=' num2str(ER)]);
+        title(['MU # ' num2str(i) ',ER=' num2str(ER) ',MAD=' num2str(MAD)]);
+
         xticks(0:1e4:3e4);
         xticklabels(0:5:15);
+
+        % xlim([3000, 7000]);
+        % xticks(3000:1000:7000);
+        % xticklabels(3:1:7);
+
         % xlim([4e3, 12e3]);
         % xticks(4e3:2e3:12e3);
         % xticklabels(2:1:6);
@@ -257,21 +279,21 @@ for axes = 1:ceil(numMU/figNum)
     ylabel(t, 'amplitude');
 end
 
-numMU = length(decompoMUFiltered.MU);
-for axes = 1:ceil(numMU/figNum)
-    figure;
-    t = tiledlayout(6, 5, "TileSpacing", 'tight', 'Padding', 'compact');
-    for i = (axes-1)*figNum+1:min(axes*figNum, numMU)
-        source = decompoMUFiltered.Source(:, i);
-        [pxx, f] = pwelch(source, [], [], [], fsampu);
-        nexttile;
-        % semilogy(f, pxx);
-        plot(f, pxx);
-        title(['MU # ' num2str(i)]);
-    end
-    xlabel(t, 'freq (s)');
-    ylabel(t, '功率谱密度');
-end
+% numMU = length(decompoMUFiltered.MU);
+% for axes = 1:ceil(numMU/figNum)
+%     figure;
+%     t = tiledlayout(6, 5, "TileSpacing", 'tight', 'Padding', 'compact');
+%     for i = (axes-1)*figNum+1:min(axes*figNum, numMU)
+%         source = decompoMUFiltered.Source(:, i);
+%         [pxx, f] = pwelch(source, [], [], [], fsampu);
+%         nexttile;
+%         % semilogy(f, pxx);
+%         plot(f, pxx);
+%         title(['MU # ' num2str(i)]);
+%     end
+%     xlabel(t, 'freq (s)');
+%     ylabel(t, '功率谱密度');
+% end
 
 %% 脉冲串匹配
 load(['./Data/experiment/ICdata/R' sub '/pulsesRef.mat']);
@@ -286,18 +308,68 @@ dIPI = round(0.010*fsampu);
 matchResultRaw = [];
 for i = 1:length(pulsesRef)
     for j = 1:length(decompoMUFiltered.MU)
+        % 这里lag是参考脉冲串平移的点数。lag大于零说明参考脉冲串超前。
         [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(pulsesRef{i},decompoMUFiltered.Pulse{j},dIPI,0);
         [Sen,FA,Pre,Spe,Acc] = accEvaluation(decompoMUFiltered.Pulse{j},pulsesRef{i},dIPI,100);
         [rr, ~] = RoA(decompoMUFiltered.Pulse{j},pulsesRef{i},100, dIPI);
-        matchResultRaw(end+1,:) = [i,j,rr,Lag,Sens,Sen,Miss,FalseAlarms,FA,Specificity,Spe,Pre,Acc];
+        matchResultRaw(end+1,:) = [i,j,rr,Lag,Sens,Sen,Miss,FalseAlarms,FA,Specificity,Spe,Pre,Acc,PulseStat.TP,PulseStat.FP,PulseStat.FN];
     end
 end
-matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc'});
+matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc', 'TP', 'FP', 'FN'});
 
 plotDecomps(decompoMUFiltered.Pulse, [], fsampu, 0, 0, []);
 % plotDecomps(decompoMURaw.Pulse, [], fsampu, 0, 0, []);
 plotDecomps(pulsesRef, [], fsampu, 0, 0, []);
-plotDecomps({pulsesRef{9}, decompoMUFiltered.Pulse{43}}, [], fsampu, 0, 0, []);
+plotDecomps({pulsesRef{2}-61, decompoMUFiltered.Pulse{10}}, [], fsampu, 0, 0, []);
+
+
+
+matchResultRaw = [];
+for i = 1:length(decompoMUFiltered2.MU)
+    for j = 1:length(decompoMUFiltered.MU)
+        % 这里lag是参考脉冲串平移的点数。lag大于零说明参考脉冲串超前。
+        [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(decompoMUFiltered2.Pulse{i},decompoMUFiltered.Pulse{j},dIPI,0);
+        [Sen,FA,Pre,Spe,Acc] = accEvaluation(decompoMUFiltered.Pulse{j},decompoMUFiltered2.Pulse{i},dIPI,100);
+        [rr, ~] = RoA(decompoMUFiltered.Pulse{j},decompoMUFiltered2.Pulse{i},100, dIPI);
+        matchResultRaw(end+1,:) = [i,j,rr,Lag,Sens,Sen,Miss,FalseAlarms,FA,Specificity,Spe,Pre,Acc,PulseStat.TP,PulseStat.FP,PulseStat.FN];
+    end
+end
+matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc', 'TP', 'FP', 'FN'});
+
+plotDecomps(decompoMUFiltered1.Pulse, [], fsampu, 0, 0, []);
+plotDecomps(decompoMUFiltered2.Pulse, [], fsampu, 0, 0, []);
+plotDecomps({decompoMUFiltered2.Pulse{1},decompoMUFiltered.Pulse{38}}, [], fsampu, 0, 0, []);
+
+
+
+matchResultRaw = [];
+for i = 1:length(decompoMUFiltered1.MU)
+    for j = 1:length(decompoMUFiltered.MU)
+        % 这里lag是参考脉冲串平移的点数。lag大于零说明参考脉冲串超前。
+        [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(decompoMUFiltered1.Pulse{i},decompoMUFiltered.Pulse{j},dIPI,0);
+        [Sen,FA,Pre,Spe,Acc] = accEvaluation(decompoMUFiltered.Pulse{j},decompoMUFiltered1.Pulse{i},dIPI,100);
+        [rr, ~] = RoA(decompoMUFiltered.Pulse{j},decompoMUFiltered1.Pulse{i},100, dIPI);
+        matchResultRaw(end+1,:) = [i,j,rr,Lag,Sens,Sen,Miss,FalseAlarms,FA,Specificity,Spe,Pre,Acc,PulseStat.TP,PulseStat.FP,PulseStat.FN];
+    end
+end
+matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc', 'TP', 'FP', 'FN'});
+
+plotDecomps({decompoMUFiltered1.Pulse{12},decompoMUFiltered.Pulse{43}}, [], fsampu, 0, 0, []);
+
+
+matchResultRaw = [];
+for i = 1:length(pulsesRef)
+    for j = 1:length(decompoMUFiltered2.MU)
+        % 这里lag是参考脉冲串平移的点数。lag大于零说明参考脉冲串超前。
+        [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(pulsesRef{i},decompoMUFiltered2.Pulse{j},dIPI,0);
+        [Sen,FA,Pre,Spe,Acc] = accEvaluation(decompoMUFiltered2.Pulse{j},pulsesRef{i},dIPI,100);
+        [rr, ~] = RoA(decompoMUFiltered2.Pulse{j},pulsesRef{i},100, dIPI);
+        matchResultRaw(end+1,:) = [i,j,rr,Lag,Sens,Sen,Miss,FalseAlarms,FA,Specificity,Spe,Pre,Acc,PulseStat.TP,PulseStat.FP,PulseStat.FN];
+    end
+end
+matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc', 'TP', 'FP', 'FN'});
+
+
 
 % matchResultRaw = [];
 % for i = 1:length(pulsesRef)
@@ -325,11 +397,11 @@ plotDecomps({pulsesRef{9}, decompoMUFiltered.Pulse{43}}, [], fsampu, 0, 0, []);
 %         % RoA
 %         rr = TP / (TP + FP + FN);
 %         % rr = RoA(decompoMUFiltered(j).pulse, pulsesRef{i}, 100, 5);
-% 
+%
 %         matchResultRaw(end+1, :) = [i, j, Lag, TP, FP, FN, matchRatio, rr];
 %     end
 % end
-% 
+%
 % matchResultRaw = array2table(matchResultRaw, 'VariableNames', {'ref', 'decomp', 'Lag', 'TP', 'FP', 'FN', 'match ratio', 'RoA'});
 
 %% 参考脉冲
@@ -378,14 +450,13 @@ median(PNRsAll)
 % plotDecomps({pulsesRef{5},decompoMUFiltered(2).pulse}, [], 1000, 0, 0, []);
 
 %% 绘制23*25个区域的估计源信号
-fsampu = 1000;
+fsampu = 2000;
 [rn, cn] = size(DecompoResults.sources);
 for r = 1:rn
     for c = 1:cn
         tmpPulses = DecompoResults.decompo_pulses{r, c};
         tmpSources = DecompoResults.sources{r, c};
         tmpTwitches = DecompoResults.twitches{r, c};
-        tmpCoV = DecompoResults.CoV{r, c};
 
         ax = figure;
         for mu = 1:length(tmpPulses)
@@ -403,24 +474,23 @@ for r = 1:rn
 
             subplot(10,5,mu+floor((mu-1)/5)*5);
             plot(tmpTwitches(:,mu));
-            xlim([4000,8000]);
-            xticks(4000:1000:8000);
-            xticklabels(4:1:8);
+            xlim([4000,12000]);
+            xticks(4000:2000:12000);
+            xticklabels(2:1:6);
             xlabel('t/s'); ylabel('amplitude');
             title(['twitch mu=' num2str(mu)])
 
             subplot(10,5,mu+ceil(mu/5)*5);
             plot(tmpSources(:,mu));
-            xlim([4000,8000]);
-            xticks(4000:1000:8000);
-            xticklabels(4:1:8);
+            xlim([4000,12000]);
+            xticks(4000:2000:12000);
+            xticklabels(2:1:6);
             xlabel('t/s'); ylabel('amplitude');
             title(['source mu=' num2str(mu) '，MAD=' num2str(MAD) ',ER=' num2str(energyRatio) '%']);
         end
 
         set(gcf,'unit','normalized','position',[0,0,1,1]);
-        saveas(ax, ['./Results/L1T1P1/r' num2str(r) 'c' num2str(c)], 'png');
-        % saveas(ax, ['./Results/R' sub '_LowPass/r' num2str(r) 'c' num2str(c)], 'png');
+        saveas(ax, ['./Results/250704M1L1T1F2/r' num2str(r) 'c' num2str(c)], 'png');
         close;
     end
 end
@@ -541,7 +611,7 @@ end
 
 %% 二次筛选
 % 计算带有时延的互相关系数
-[cc, ~] = xcorr(decompoMUFiltered.Source, 'coeff');
+[cc, ~] = xcorr(decompoMUFiltered.Source(2000:end,:), 'coeff');
 numMU = length(decompoMUFiltered.MU);
 % 转成三维数组
 cc = reshape(cc', numMU, numMU, []);
@@ -609,19 +679,31 @@ numMU = length(decompoMUFiltered.MU);
 for i = 1:numMU
     sss = decompoMUFiltered.Source(:, i);
     ttt = decompoMUFiltered.Twitch(:, i);
+    tttf = decompoMUFiltered.TwitchesFinal(:, i);
     ppp = decompoMUFiltered.Pulse{i};
     figure;
-    subplot(2,1,1);
+    tiledlayout('vertical', 'TileSpacing', 'tight', 'Padding', 'compact');
+    nexttile;
     plot(ttt);
-    xticklabels(0:1:10);
-    xlabel('t (s)')
+    xlim([4e3, 12e3]);
+    xticks(4e3:2e3:12e3);
+    xticklabels(2:1:6);
+
+    nexttile;
+    plot(tttf);
+    xlim([4e3, 12e3]);
+    xticks(4e3:2e3:12e3);
+    xticklabels(2:1:6);
     title('twitch')
-    subplot(2,1,2);
+
+    nexttile;
     plot(sss);
     hold on;
     plot(ppp, sss(ppp), 'ro');
-    xticklabels(0:1:10);
-    xlabel('t (s)')
+    xlim([4e3, 12e3]);
+    xticks(4e3:2e3:12e3);
+    xticklabels(2:1:6);
     title('estimated source')
+
     set(gcf,'unit','normalized','position',[0.3,0.4,0.4,0.3]);
 end

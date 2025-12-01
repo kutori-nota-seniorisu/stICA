@@ -10,15 +10,27 @@ load(['./Data/experiment/ICdata/R' num2str(sub) '/USCBSS_DecompResult_MPD50.mat'
 numMU = length(decompoMUFiltered.MU);
 
 %% twitch区域，STA
-win = [-50, 50];
-fsampu = 1000;
+win = [-100, 100];
+fsampu = 2000;
 
 % 导入超声速度图像
-tviFile = ['./Data/experiment/ICdata/R' num2str(sub) '/v_2d_all.mat'];
+% tviFile = ['./Data/experiment/ICdata/R' num2str(sub) '/v_2d_all.mat'];
+tviFile = './Data/experiment/25-07-04/TVIData_15000_S_wrl_M1_level1_trial1_Single_25-07-04.mat';
 load(tviFile);
-TVIData = cat(3, zeros(119, 128, 2), v_2d_all);
+
+TVIData = cat(3, zeros(395, 128, 20), TVIData);
+
 % filter the TVI data
 TVIDataFilter = TVIData;
+
+% 轴向0.5MHz低通滤波
+[Be1, Ae1] = butter(4, 0.5/(7.7*4)*2, 'low');
+for i = 1:size(TVIDataFilter, 3)
+    tmp = TVIDataFilter(:, :, i);
+    tmp = filtfilt(Be1, Ae1, tmp);
+    TVIDataFilter(:, :, i) = tmp;
+end
+
 % 时间5-100Hz带通滤波
 [Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
 for r = 1:size(TVIDataFilter, 1)
@@ -29,13 +41,24 @@ for r = 1:size(TVIDataFilter, 1)
     end
 end
 
+% 对每一列降采样
+for i = 1:size(TVIDataFilter, 3)
+    tmp = TVIDataFilter(:, :, i);
+    tmp = resample(tmp, 128, 395);
+    TVITmp(:, :, i) = tmp;
+end
+TVIDataFilter = TVITmp;
+clear TVITmp;
+
 [M, N, L] = size(TVIDataFilter);
 % 窗口大小
-Row = 10; Col = 10;
+% Row = 10; Col = 10;
+Row = 8; Col = 8;
 % 窗口移动距离
-dRow = 5; dCol = 5;
+% dRow = 5; dCol = 5;
+dRow = 4; dCol = 4;
 
-for mu = 1:numMU
+for mu = 5%1:numMU
     tmpPulses = decompoMUFiltered.Pulse{mu};
     if isempty(tmpPulses)
         continue;
@@ -72,6 +95,7 @@ for mu = 1:numMU
     title(['MU ' num2str(mu) ' twitch curve']);
 end
 % end
+
 
 %% EMG
 % EMG采样频率

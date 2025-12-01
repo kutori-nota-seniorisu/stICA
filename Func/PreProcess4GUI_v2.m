@@ -244,7 +244,7 @@ end
 chNum = size(Data,1);
 Data_new = Data;
 if BPFilter
-    LowFreq = 10;   % low frequency of passband 
+    LowFreq = 20;   % low frequency of passband 
     HighFreq = 500; % high frequency of passband
     % signalQuality = 5;  % frequency criterion
 
