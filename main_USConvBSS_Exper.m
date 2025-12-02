@@ -15,19 +15,25 @@ if isempty(gcp('nocreate'))
     parpool;
 end
 
+%% 读取数据并进行卷积盲源分离
+% for sub = [16]
+
 for motion = 1%:2
     for trial = 1%:2
 
 %% TVI数据预处理
 disp('导入数据');
 % 导入TVI数据
+% disp(['Sub=' num2str(sub)]);
+% tviFile = ['./Data/experiment/ICdata/R' num2str(sub) '/v_2d_all.mat'];
+disp(['M' num2str(motion) 'L1T' num2str(trial)]);
 tviFile = ['./Data/experiment/25-07-04/TVIData_15000_S_wrl_M' num2str(motion) '_level1_trial' num2str(trial) '_Single_25-07-04.mat'];
-% tviFile = ['./Data/experiment/24-06-21/UUS-iEMG/TVIData_S1_M1_level' num2str(level) '_trial' num2str(trial) '_Dual_24-06-21_' num2str(pp) '.mat'];
 load(tviFile);
 
 % 数据预处理
 disp('开始数据预处理');
 tic;
+% TVIData = cat(3, zeros(119, 128, 2), v_2d_all);
 TVIData = cat(3, zeros(395, 128, 20), TVIData);
 
 % filter the TVI data
@@ -59,6 +65,7 @@ parfor i = 1:size(TVIDataFilter, 3)
 end
 TVIDataFilter = TVITmp;
 clear TVITmp;
+
 toc;
 disp(['数据预处理用时' num2str(toc)]);
 
@@ -127,9 +134,9 @@ parfor kkk = 1:(numRows*numCols)
 
     % 6.初始化矩阵B
     B = zeros(ii, numCompo);
-    twitches = zeros(size(eY, 2), numCompo);
-    twitchesFinal = zeros(size(eY, 2), numCompo);
-    sources = zeros(size(eY, 2), numCompo);
+    twitches = zeros(L, numCompo);
+    twitchesFinal = zeros(L, numCompo);
+    sources = zeros(L, numCompo);
     decompo_pulses = cell(1, numCompo);
     CoV = zeros(1, numCompo);
 
@@ -199,8 +206,9 @@ DecompoResults.twitchesFinal = reshape(tmpTwitchesFinal, numRows, numCols)';
 DecompoResults.decompo_pulses = reshape(tmpDecompoPulses, numRows, numCols)';
 DecompoResults.CoV = reshape(tmpCoV, numRows, numCols)';
 
-save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_USCBSS_compo25_test.mat'], 'DecompoResults', '-v7.3');
-
+% save([savepath '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
 % save(['./Data/experiment/24-06-21/UUS-iEMG/S1M1L' num2str(level) 'T' num2str(trial) '_USCBSS_compo' num2str(numCompo) '_' num2str(pp) '_2s1.mat'], 'DecompoResults', '-v7.3');
+save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_USCBSS_compo25_test.mat'], 'DecompoResults', '-v7.3');
+disp('数据保存完成！');
     end
 end
