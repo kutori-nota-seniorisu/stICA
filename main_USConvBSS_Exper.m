@@ -71,8 +71,8 @@ Row = 10; Col = 10;
 % 窗口移动距离
 dRow = 5; dCol = 5;
 % 行数与列数
-numRows = (M-Row)/dRow+1;
-numCols = (N-Col)/dCol+1;
+numRows = ceil((M-Row)/dRow+1);
+numCols = ceil((N-Col)/dCol+1);
 
 % 存储空间预分配
 tmpB = cell(numRows*numCols, 1);
