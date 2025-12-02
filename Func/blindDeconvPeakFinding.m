@@ -1,5 +1,4 @@
 function [source, PT, CoV, w_new] = blindDeconvPeakFinding(S, fs, R, nMAD, MPD, mode)
-% [spike, PT, CoV, w_new] = blindDeconvPeakFinding(S)
 %
 % 这是一种采用卷积盲源分离获取spike train的方法，
 % 输入为估计源，可以是ICA后得到的单个时间成分，也可以是对USS进行CBSS后的粗略估计源

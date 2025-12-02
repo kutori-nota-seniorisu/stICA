@@ -68,35 +68,15 @@ std(RoA)
 median(RoA)
 
 %%
-d1 = 8;
-d2 = 4;
-ref = 9;
-figure;
-subplot(5,1,1);
-plot(-T(:, d1));
-title('BPM')
-subplot(5,1,2);
-plot(-T_norm(:, d1));
-hold on;
-scatter(decompo_pulses{d1},zeros(length(decompo_pulses{d1})), 1000, 'black', '|');
-title('BPM normalization')
-subplot(5,1,3);
-plot(-decompoSourceFirstAll(:, d2));
-% hold on;
-% scatter(decompoPulseAll{d2}, zeros(length(decompoPulseAll{d2})), 1000, "black", '|');
-title('USCBSS First Step')
-subplot(5,1,4);
-plot(decompoSourceAll(:, d2));
-hold on;
-scatter(decompoPulseAll{d2}, zeros(length(decompoPulseAll{d2})), 1000, "black", '|');
-title('USCBSS Second Step')
-subplot(5,1,5);
-plot(Xt(:, ref));
-hold on;
-scatter(ipulses{ref}, zeros(length(ipulses{ref})), 1000, "black", '|');
-title('Ref Source')
-set(gcf,'unit','normalized','position',[0.05,0.1,0.9,0.6]);
-
+for ni = 1:2
+    for mu = 1:length(decomps{ni}.MUPulses)
+        tmp = decomps{ni}.MUPulses{mu};
+        % tmp = tmp(tmp >= edges(1) & tmp <= edges(2));
+        % tmp = tmp - edges(1);
+        % tmp = round(tmp/fsamp*fsampu);
+        pulsesRef{end+1} = tmp;
+    end
+end
 %%
 mu = 43;
 twitch = decompoMUFiltered.Twitch(:, mu);

@@ -27,10 +27,9 @@ for r = 1:rn
         tmpPulses = DecompoResults.decompo_pulses{r, c};
         tmpSources = DecompoResults.sources{r, c};
         tmpTwitches = DecompoResults.twitches{r, c};
-        tmpCoV = DecompoResults.CoV{r, c};
-
         tmpTwitchesFinal = DecompoResults.twitchesFinal{r, c};
-
+        tmpCoV = DecompoResults.CoV{r, c};
+        
         for mu = 1:length(tmpPulses)
             % 计算MAD，单位为ms
             MAD = mad(diff(tmpPulses{mu}/fsampu*1000));
@@ -73,7 +72,7 @@ decompoMURaw.ER = saveEnergyRatio;
 decompoMURaw.MAD = saveMAD;
 decompoMURaw.CoV = saveCoV;
 
-decompoMURaw.TwitchesFinal = saveTwitchesFinal;
+decompoMURaw.TwitchFinal = saveTwitchesFinal;
 
 clear saveMUs saveRows saveCols savePulses saveSources saveTwitches saveEnergyRatio saveCoV;
 
@@ -134,7 +133,7 @@ decompoMUFiltered.ER = decompoMURaw.ER(selectedIndices);
 decompoMUFiltered.MAD = decompoMURaw.MAD(selectedIndices);
 decompoMUFiltered.CoV = decompoMURaw.CoV(selectedIndices);
 
-decompoMUFiltered.TwitchesFinal = decompoMURaw.TwitchesFinal(:, selectedIndices);
+decompoMUFiltered.TwitchFinal = decompoMURaw.TwitchFinal(:, selectedIndices);
 
 % 输出结果信息
 fprintf('原始元素数量: %d\n', numSources);
@@ -225,7 +224,7 @@ decompoMUFiltered.ER = decompoMUFiltered.ER(selectedIndices);
 decompoMUFiltered.MAD = decompoMUFiltered.MAD(selectedIndices);
 decompoMUFiltered.CoV = decompoMUFiltered.CoV(selectedIndices);
 
-decompoMUFiltered.TwitchesFinal = decompoMURaw.TwitchesFinal(:, selectedIndices);
+decompoMUFiltered.TwitchFinal = decompoMURaw.TwitchFinal(:, selectedIndices);
 
 % 输出结果信息
 fprintf('原始元素数量: %d\n', numSources);
@@ -369,6 +368,17 @@ for i = 1:length(pulsesRef)
 end
 matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc', 'TP', 'FP', 'FN'});
 
+matchResultRaw = [];
+for i = 1:length(pulsesRef)
+    for j = 1:length(pulsesRef1)
+        % 这里lag是参考脉冲串平移的点数。lag大于零说明参考脉冲串超前。
+        [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(pulsesRef{i},pulsesRef1{j},dIPI,0);
+        [Sen,FA,Pre,Spe,Acc] = accEvaluation(pulsesRef1{j},pulsesRef{i},dIPI,100);
+        [rr, ~] = RoA(pulsesRef1{j},pulsesRef{i},100, dIPI);
+        matchResultRaw(end+1,:) = [i,j,rr,Lag,Sens,Sen,Miss,FalseAlarms,FA,Specificity,Spe,Pre,Acc,PulseStat.TP,PulseStat.FP,PulseStat.FN];
+    end
+end
+matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc', 'TP', 'FP', 'FN'});
 
 
 % matchResultRaw = [];
@@ -490,7 +500,7 @@ for r = 1:rn
         end
 
         set(gcf,'unit','normalized','position',[0,0,1,1]);
-        saveas(ax, ['./Results/250704M1L1T1F2/r' num2str(r) 'c' num2str(c)], 'png');
+        saveas(ax, ['./Results/250704M1L1T1F/r' num2str(r) 'c' num2str(c)], 'png');
         close;
     end
 end
@@ -679,7 +689,7 @@ numMU = length(decompoMUFiltered.MU);
 for i = 1:numMU
     sss = decompoMUFiltered.Source(:, i);
     ttt = decompoMUFiltered.Twitch(:, i);
-    tttf = decompoMUFiltered.TwitchesFinal(:, i);
+    tttf = decompoMUFiltered.TwitchFinal(:, i);
     ppp = decompoMUFiltered.Pulse{i};
     figure;
     tiledlayout('vertical', 'TileSpacing', 'tight', 'Padding', 'compact');

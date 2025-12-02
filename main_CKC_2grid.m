@@ -7,7 +7,10 @@ fsamp = 2048;
 % US采样频率
 fsampu = 2000;
 
-emgFile = './Data/EMG/25-07-04/M1L1T1.mat';
+motion = 2;
+trial = 2;
+
+emgFile = ['./Data/EMG/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '.mat'];
 try
     load(emgFile);
 catch ME
@@ -16,11 +19,9 @@ end
 
 %% 根据不同数据类型进行修改
 newdata = Data';
-% newdata(newdata > 32768) = newdata(newdata > 32768) - 2^16;
 trigger = newdata(end-1, :);
 [~, edges] = findpeaks(trigger, 'MinPeakDistance', 10000, 'MinPeakProminence', 0.3);
-sEMG = newdata(1:end-2, edges(1):edges(2));
-
+sEMG = newdata(1:end-2, :);
 
 % 绘制trigger图像
 figure;
@@ -30,13 +31,7 @@ plot(edges(1), trigger(edges(1)), 'ro');
 plot(edges(2), trigger(edges(2)), 'ro');
 drawnow;
 
-% figure;
-% plot(diff(trigger));
-% drawnow;
-
 %% CKC反解EMG
-pulsesRef = {};
-
 for ni = 1:2
     data = sEMG(64*(ni-1)+1:64*ni,:);
 
@@ -56,18 +51,8 @@ for ni = 1:2
     [decompData,dataarray,datafilt,prohibitInd,decompChannelInd] = PreProcess4GUI_v2(data,decoderParameters);
     decomps{ni} = IPTExtraction_gCKC4GUI_v3(decompData,decoderParameters); % classic gradient CKC
     decomps{ni}.decompChannelInd = decompChannelInd;
-
-    for mu = 1:length(decomps{ni}.MUPulses)
-        tmp = decomps{ni}.MUPulses{mu};
-        tmp = tmp(tmp >= edges(1) & tmp <= edges(2));
-        tmp = tmp - edges(1);
-        tmp = round(tmp/fsamp*fsampu);
-        pulsesRef{end+1} = tmp;
-    end
-
-    plotDecomps(decomps{ni}.MUPulses, [], fsamp, 0, 0, []);
 end
-% save('./Data/experiment/25-07-04/M1L1T1_decomps.mat', 'decomps', 'pulsesRef');
+save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_decomps.mat'], 'decomps');
 
 %% 绘制IPT
 for ni = 1:2
@@ -75,12 +60,48 @@ for ni = 1:2
     IPTs = decomps{ni}.IPTs;
     PNRs = decomps{ni}.PNRs;
     MUPulses = decomps{ni}.MUPulses;
-    for i = 1:size(IPTs, 1)
-        figure;
-        plot(IPTs(i, :));
+
+    figure;
+    t = tiledlayout('vertical', 'TileSpacing', 'none', 'Padding', 'compact');
+    for mu = 1:size(IPTs, 1)
+        nexttile;
+        plot(IPTs(mu, :));
         hold on;
-        plot(MUPulses{i}, IPTs(i, MUPulses{i}), 'ro');
-        set(gcf,'unit','normalized','position',[0.05,0.1,0.9,0.6]);
-        title(num2str(PNRs(i)));
+        plot(MUPulses{mu}, IPTs(mu, MUPulses{mu}), 'ro');
+        xline(edges);
+        % set(gcf,'unit','normalized','position',[0.05,0.1,0.6,0.3]);
+        title(['ni#' num2str(ni) ' MU#' num2str(mu) ' PNR=' num2str(PNRs(mu))]);
     end
 end
+
+%% 保存参考脉冲串
+pulsesRef = {};
+for ni = 1:2
+    PNRs = decomps{ni}.PNRs;
+    MUPulses = decomps{ni}.MUPulses;
+    for mu = 1:length(MUPulses)
+        if PNRs(mu) <= 20
+            disp(['ni#' num2str(ni) ' MU#' num2str(mu) ' PNR过小，不保留']);
+            continue;
+        end
+
+        tmp = MUPulses{mu};
+        % 截取15s
+        tmp = tmp(tmp >= edges(1) & tmp <= edges(2));
+        % 对齐零时刻
+        tmp = tmp - edges(1);
+        % 转换为超声采样率的时刻
+        tmp = round(tmp/fsamp*fsampu);
+        if length(tmp) <= 15
+            disp(['ni#' num2str(ni) ' MU#' num2str(mu) ' 放电时刻过少，不保留']);
+            continue;
+        end
+        if length(tmp) >= 15*35
+            disp(['ni#' num2str(ni) ' MU#' num2str(mu) ' 放电时刻过多，不保留']);
+            continue;
+        end
+
+        pulsesRef{end+1} = tmp;
+    end
+end
+save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_pulsesRef.mat'], 'pulsesRef');

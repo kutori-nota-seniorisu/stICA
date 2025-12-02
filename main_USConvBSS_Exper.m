@@ -15,8 +15,8 @@ if isempty(gcp('nocreate'))
     parpool;
 end
 
-for motion = 1:2
-    for trial = 1:2
+for motion = 1%:2
+    for trial = 1%:2
 
 %% TVI数据预处理
 disp('导入数据');
@@ -67,9 +67,9 @@ disp('开始数据迭代');
 tic;
 [M, N, L] = size(TVIDataFilter);
 % 窗口大小
-Row = 8; Col = 8;
+Row = 10; Col = 10;
 % 窗口移动距离
-dRow = 4; dCol = 4;
+dRow = 5; dCol = 5;
 % 行数与列数
 numRows = (M-Row)/dRow+1;
 numCols = (N-Col)/dCol+1;
@@ -161,6 +161,7 @@ parfor kkk = 1:(numRows*numCols)
         while true
             CoV_old = CoV_new;
             s = w_new' * Z;
+            % MPD=50ms,R=20,nMAD=2
             [source_new, PT, CoV_new, ~] = blindDeconvPeakFinding(s, fsampu, 20, 2, 50, 2);
             w_new = mean(Z(:, PT), 2);
             countcount = countcount + 1;
@@ -198,7 +199,7 @@ DecompoResults.twitchesFinal = reshape(tmpTwitchesFinal, numRows, numCols)';
 DecompoResults.decompo_pulses = reshape(tmpDecompoPulses, numRows, numCols)';
 DecompoResults.CoV = reshape(tmpCoV, numRows, numCols)';
 
-save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_USCBSS_compo25.mat'], 'DecompoResults', '-v7.3');
+save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_USCBSS_compo25_test.mat'], 'DecompoResults', '-v7.3');
 
 % save(['./Data/experiment/24-06-21/UUS-iEMG/S1M1L' num2str(level) 'T' num2str(trial) '_USCBSS_compo' num2str(numCompo) '_' num2str(pp) '_2s1.mat'], 'DecompoResults', '-v7.3');
     end
