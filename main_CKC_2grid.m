@@ -7,9 +7,10 @@ fsamp = 2048;
 % US采样频率
 fsampu = 2000;
 
-motion = 2;
-trial = 2;
+% for sub = [3,4,5,7,10,11,12,14,15,16,17,18]
+% emgFile = ['./Data/experiment/ICdata/R' num2str(sub) '/R' num2str(sub) '.mat'];
 
+motion = 2; trial = 2;
 emgFile = ['./Data/EMG/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '.mat'];
 try
     load(emgFile);
@@ -18,6 +19,14 @@ catch ME
 end
 
 %% 根据不同数据类型进行修改
+% ICData处理
+% newdata = Data{1, 2};
+% newdata(newdata > 32768) = newdata(newdata > 32768) - 2^16;
+% trigger = newdata(end, :);
+% [~, edges] = maxk(trigger, 2);
+% edges = sort(edges);
+% sEMG = newdata(1:end-2, :);
+
 newdata = Data';
 trigger = newdata(end-1, :);
 [~, edges] = findpeaks(trigger, 'MinPeakDistance', 10000, 'MinPeakProminence', 0.3);
@@ -52,6 +61,10 @@ for ni = 1:2
     decomps{ni} = IPTExtraction_gCKC4GUI_v3(decompData,decoderParameters); % classic gradient CKC
     decomps{ni}.decompChannelInd = decompChannelInd;
 end
+
+% savepath = ['./Data/experiment/ICdata/R' num2str(sub) '/'];
+% save([savepath 'R' num2str(sub) '_decomps.mat'], 'decomps');
+
 save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_decomps.mat'], 'decomps');
 
 %% 绘制IPT
