@@ -1,13 +1,13 @@
 % ipulse和6PTM模型卷积，作为仿真数据
 % 模型ref: Variability of successive contractions subtracted from unfused tetanus of fast and slow motor units
 clc; clear; close all;
-addpath('F:/EEEMG/stICA/Func');
+addpath('./Func');
 
 fsampu = 2000; % 采样率
 
 datasets_num = '1';
 time_datasets = ['TimeCompoDatasets' datasets_num];% 时间分量数据集所在的文件夹
-load(['F:/EEEMG/stICA/Data/simulation/MU_time_response/' time_datasets '/ipulses.mat']);
+load(['./Data/simulation/MU_time_response/' time_datasets '/ipulses.mat']);
 % plotDecomps(ipulses,[],fsampu,0,0,[]);
 
 muNum = length(ipulses);
@@ -59,16 +59,16 @@ for mu = 1:muNum
     snr = 20; % 信噪比为~dB
     MU_noisy_conv = awgn(MU_conv_diff, snr, 'measured');
 
-    % figure;
-    % subplot(3,1,1);
-    % plot(MU_conv);
-    % title(['MU' num2str(mu) ' twitch']);
-    % subplot(3,1,2);
-    % plot(MU_conv_diff);
-    % title(['MU' num2str(mu) ' twitch(diff)']);
-    % subplot(3,1,3);
-    % plot(MU_noisy_conv);
-    % title(['MU' num2str(mu) ' twitch(diff,noisy)']);
+    figure;
+    subplot(3,1,1);
+    plot(MU_conv);
+    title(['MU' num2str(mu) ' twitch']);
+    subplot(3,1,2);
+    plot(MU_conv_diff);
+    title(['MU' num2str(mu) ' twitch(diff)']);
+    subplot(3,1,3);
+    plot(MU_noisy_conv);
+    title(['MU' num2str(mu) ' twitch(diff,noisy)']);
 
-    save(['F:/EEEMG/stICA/Data/simulation/MU_time_response/' time_datasets '/Time_component' num2str(mu) '.mat'],'MU_noisy_conv')
+    % save(['F:/EEEMG/stICA/Data/simulation/MU_time_response/' time_datasets '/Time_component' num2str(mu) '.mat'],'MU_noisy_conv')
 end

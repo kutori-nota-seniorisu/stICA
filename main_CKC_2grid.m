@@ -92,6 +92,7 @@ for ni = 1:2
         tmp = tmp - edges(1);
         % 转换为超声采样率的时刻
         tmp = round(tmp/fsamp*fsampu);
+
         if length(tmp) <= 15
             disp(['ni#' num2str(ni) ' MU#' num2str(mu) ' 放电时刻过少，不保留']);
             continue;
@@ -105,3 +106,4 @@ for ni = 1:2
     end
 end
 save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_pulsesRef.mat'], 'pulsesRef');
+

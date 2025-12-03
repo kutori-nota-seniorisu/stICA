@@ -16,8 +16,6 @@ saveCoV = [];
 saveMAD = [];
 saveTwitchesFinal = [];
 
-meanISI = [];
-
 fsampu = 2000;
 % 计算放电串的MAD，大于25ms则去除
 % 计算估计源在6-14Hz内的能量占比，小于20%则去除
@@ -43,7 +41,10 @@ for r = 1:rn
             energyTotal = trapz(freq(idxTotal), psd(idxTotal));
             energyRatio = energyInBand / energyTotal * 100;
 
-            meanISI(r,c,mu) = mean(diff(tmpPulses{mu}/fsampu*1000));
+            % 所有反解结果的效果
+            ISIAll(r,c,mu) = mean(diff(tmpPulses{mu}/fsampu*1000));
+            MADAll(r,c,mu) = MAD;
+            CoVAll(r,c,mu) = tmpCoV(mu);
 
             if energyRatio >= 20 && MAD <= 100
                 disp(['r=' num2str(r) ',c=' num2str(c) ',mu=' num2str(mu) '保留！']);
@@ -321,65 +322,33 @@ plotDecomps(decompoMUFiltered.Pulse, [], fsampu, 0, 0, []);
 plotDecomps(pulsesRef, [], fsampu, 0, 0, []);
 plotDecomps({pulsesRef{2}-61, decompoMUFiltered.Pulse{10}}, [], fsampu, 0, 0, []);
 
-
-
-matchResultRaw = [];
-for i = 1:length(decompoMUFiltered2.MU)
-    for j = 1:length(decompoMUFiltered.MU)
-        % 这里lag是参考脉冲串平移的点数。lag大于零说明参考脉冲串超前。
-        [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(decompoMUFiltered2.Pulse{i},decompoMUFiltered.Pulse{j},dIPI,0);
-        [Sen,FA,Pre,Spe,Acc] = accEvaluation(decompoMUFiltered.Pulse{j},decompoMUFiltered2.Pulse{i},dIPI,100);
-        [rr, ~] = RoA(decompoMUFiltered.Pulse{j},decompoMUFiltered2.Pulse{i},100, dIPI);
-        matchResultRaw(end+1,:) = [i,j,rr,Lag,Sens,Sen,Miss,FalseAlarms,FA,Specificity,Spe,Pre,Acc,PulseStat.TP,PulseStat.FP,PulseStat.FN];
-    end
-end
-matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc', 'TP', 'FP', 'FN'});
-
-plotDecomps(decompoMUFiltered1.Pulse, [], fsampu, 0, 0, []);
-plotDecomps(decompoMUFiltered2.Pulse, [], fsampu, 0, 0, []);
-plotDecomps({decompoMUFiltered2.Pulse{1},decompoMUFiltered.Pulse{38}}, [], fsampu, 0, 0, []);
-
-
-
-matchResultRaw = [];
-for i = 1:length(decompoMUFiltered1.MU)
-    for j = 1:length(decompoMUFiltered.MU)
-        % 这里lag是参考脉冲串平移的点数。lag大于零说明参考脉冲串超前。
-        [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(decompoMUFiltered1.Pulse{i},decompoMUFiltered.Pulse{j},dIPI,0);
-        [Sen,FA,Pre,Spe,Acc] = accEvaluation(decompoMUFiltered.Pulse{j},decompoMUFiltered1.Pulse{i},dIPI,100);
-        [rr, ~] = RoA(decompoMUFiltered.Pulse{j},decompoMUFiltered1.Pulse{i},100, dIPI);
-        matchResultRaw(end+1,:) = [i,j,rr,Lag,Sens,Sen,Miss,FalseAlarms,FA,Specificity,Spe,Pre,Acc,PulseStat.TP,PulseStat.FP,PulseStat.FN];
-    end
-end
-matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc', 'TP', 'FP', 'FN'});
-
-plotDecomps({decompoMUFiltered1.Pulse{12},decompoMUFiltered.Pulse{43}}, [], fsampu, 0, 0, []);
-
-
+%% 参考脉冲串内部去重，暂未纳入CKC后处理
+fsampu = 2000;
+dIPI = round(0.0005*fsampu);
 matchResultRaw = [];
 for i = 1:length(pulsesRef)
-    for j = 1:length(decompoMUFiltered2.MU)
+    for j = 1:length(pulsesRef)
         % 这里lag是参考脉冲串平移的点数。lag大于零说明参考脉冲串超前。
-        [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(pulsesRef{i},decompoMUFiltered2.Pulse{j},dIPI,0);
-        [Sen,FA,Pre,Spe,Acc] = accEvaluation(decompoMUFiltered2.Pulse{j},pulsesRef{i},dIPI,100);
-        [rr, ~] = RoA(decompoMUFiltered2.Pulse{j},pulsesRef{i},100, dIPI);
+        [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(pulsesRef{i},pulsesRef{j},dIPI,0);
+        [Sen,FA,Pre,Spe,Acc] = accEvaluation(pulsesRef{j},pulsesRef{i},dIPI,100);
+        [rr, ~] = RoA(pulsesRef{j},pulsesRef{i},100, dIPI);
         matchResultRaw(end+1,:) = [i,j,rr,Lag,Sens,Sen,Miss,FalseAlarms,FA,Specificity,Spe,Pre,Acc,PulseStat.TP,PulseStat.FP,PulseStat.FN];
     end
 end
 matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc', 'TP', 'FP', 'FN'});
 
-matchResultRaw = [];
-for i = 1:length(pulsesRef)
-    for j = 1:length(pulsesRef1)
-        % 这里lag是参考脉冲串平移的点数。lag大于零说明参考脉冲串超前。
-        [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(pulsesRef{i},pulsesRef1{j},dIPI,0);
-        [Sen,FA,Pre,Spe,Acc] = accEvaluation(pulsesRef1{j},pulsesRef{i},dIPI,100);
-        [rr, ~] = RoA(pulsesRef1{j},pulsesRef{i},100, dIPI);
-        matchResultRaw(end+1,:) = [i,j,rr,Lag,Sens,Sen,Miss,FalseAlarms,FA,Specificity,Spe,Pre,Acc,PulseStat.TP,PulseStat.FP,PulseStat.FN];
-    end
-end
-matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc', 'TP', 'FP', 'FN'});
 
+for mu = 1:length(pulsesRef)
+    MADRef(mu) = mad(diff(pulsesRef{mu}/fsampu*1000));
+    ISIRef(mu) = mean(diff(pulsesRef{mu}/fsampu*1000));
+    CoVRef(mu) = std(diff(pulsesRef{mu}/fsampu*1000))/mean(diff(pulsesRef{mu}/fsampu*1000));
+end
+
+for mu=1:length(decompoMUFiltered.MU)
+    MADDecomp(mu) = mad(diff(decompoMUFiltered.Pulse{mu}/fsampu*1000));
+    ISIDecomp(mu) = mean(diff(decompoMUFiltered.Pulse{mu}/fsampu*1000));
+    CoVDecomp(mu) = std(diff(decompoMUFiltered.Pulse{mu}/fsampu*1000))/mean(diff(decompoMUFiltered.Pulse{mu}/fsampu*1000));
+end
 
 % matchResultRaw = [];
 % for i = 1:length(pulsesRef)

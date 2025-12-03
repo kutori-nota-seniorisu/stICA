@@ -186,6 +186,23 @@ legend('y1', 'y2');
 figure;
 plot(t, abs(y1-y2));
 
+%%
+Y=TVIData(5:6,7:8,:);
+[~,~,L] = size(Y);
+Y_reshape=reshape(Y,4,[]);
+[n,N] = size(Y_reshape);
+
+eY1 = extend(Y_reshape, 5);
+eY1 = eY1(:,1:L);
+
+eY2 = zeros(n*5,N);
+for i = 1:n
+    eY2((i-1)*5+1:i*5,:) = toeplitz([Y_reshape(i,1);zeros(5-1,1)],Y_reshape(i,:));
+end
+
+d = eY1-eY2;
+
+
 %% ipulse和6PTM模型卷积，作为仿真数据
 % 模型ref: Variability of successive contractions subtracted from unfused tetanus of fast and slow motor units
 addpath('./Func');
