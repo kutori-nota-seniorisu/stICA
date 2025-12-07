@@ -2,6 +2,9 @@
 clear; clc; close all;
 addpath('./Func');
 % 导入数据
+% sub = '16';
+% load(['./Data/experiment/ICdata/R' sub '/USCBSS_compo25.mat']);
+
 load(['./Data/experiment/24-06-21/UUS-iEMG/S1M1L1T1_USCBSS_compo25_2.mat']);
 
 %% step1 以MAD和能量占比筛选
@@ -14,7 +17,7 @@ saveTwitches = [];
 saveEnergyRatio = [];
 saveCoV = [];
 saveMAD = [];
-saveTwitchesFinal = [];
+% saveTwitchesFinal = [];
 
 fsampu = 2000;
 % 计算放电串的MAD，大于25ms则去除
@@ -25,7 +28,7 @@ for r = 1:rn
         tmpPulses = DecompoResults.decompo_pulses{r, c};
         tmpSources = DecompoResults.sources{r, c};
         tmpTwitches = DecompoResults.twitches{r, c};
-        tmpTwitchesFinal = DecompoResults.twitchesFinal{r, c};
+        % tmpTwitchesFinal = DecompoResults.twitchesFinal{r, c};
         tmpCoV = DecompoResults.CoV{r, c};
         
         for mu = 1:length(tmpPulses)
@@ -58,7 +61,7 @@ for r = 1:rn
                 saveMAD(end+1) = MAD;
                 saveCoV(end+1) = tmpCoV(mu);
 
-                saveTwitchesFinal(:, end+1) = tmpTwitchesFinal(:, mu);
+                % saveTwitchesFinal(:, end+1) = tmpTwitchesFinal(:, mu);
             end
         end
     end
@@ -73,7 +76,7 @@ decompoMURaw.ER = saveEnergyRatio;
 decompoMURaw.MAD = saveMAD;
 decompoMURaw.CoV = saveCoV;
 
-decompoMURaw.TwitchFinal = saveTwitchesFinal;
+% decompoMURaw.TwitchFinal = saveTwitchesFinal;
 
 clear saveMUs saveRows saveCols savePulses saveSources saveTwitches saveEnergyRatio saveCoV;
 
@@ -86,7 +89,7 @@ numSources = length(decompoMURaw.MU);
 corrThreshold = 0.3;  % 相关系数阈值
 
 % 初始化相关系数矩阵
-crossCorrMatrix = zeros(numSources, numSources);
+% crossCorrMatrix = zeros(numSources, numSources);
 
 % sources每一列的均值都近似于零，因而corr的值与xcorr在lag=0处的值近似相等
 % 使用corr计算，会忽视具有时延的相似性，因而导致冗余保留。（是否存在时延相似？）
@@ -134,7 +137,7 @@ decompoMUFiltered.ER = decompoMURaw.ER(selectedIndices);
 decompoMUFiltered.MAD = decompoMURaw.MAD(selectedIndices);
 decompoMUFiltered.CoV = decompoMURaw.CoV(selectedIndices);
 
-decompoMUFiltered.TwitchFinal = decompoMURaw.TwitchFinal(:, selectedIndices);
+% decompoMUFiltered.TwitchFinal = decompoMURaw.TwitchFinal(:, selectedIndices);
 
 % 输出结果信息
 fprintf('原始元素数量: %d\n', numSources);
@@ -166,11 +169,6 @@ corrThreshold = 0.3;  % 相关系数阈值
 
 % 初始化相关系数矩阵
 crossCorrMatrix = zeros(numSources, numSources);
-
-% sources每一列的均值都近似于零，因而corr的值与xcorr在lag=0处的值近似相等
-% 使用corr计算，会忽视具有时延的相似性，因而导致冗余保留。（是否存在时延相似？）
-% 那就筛两遍。第一次用corr初步筛选，第二次用xcorr精细筛选。
-% crossCorrMatrix = abs(corr(sources));
 
 % 计算每对信号的最大互相关系数（考虑时移）
 for i = 1:numSources
@@ -225,7 +223,7 @@ decompoMUFiltered.ER = decompoMUFiltered.ER(selectedIndices);
 decompoMUFiltered.MAD = decompoMUFiltered.MAD(selectedIndices);
 decompoMUFiltered.CoV = decompoMUFiltered.CoV(selectedIndices);
 
-decompoMUFiltered.TwitchFinal = decompoMURaw.TwitchFinal(:, selectedIndices);
+% decompoMUFiltered.TwitchFinal = decompoMURaw.TwitchFinal(:, selectedIndices);
 
 % 输出结果信息
 fprintf('原始元素数量: %d\n', numSources);
