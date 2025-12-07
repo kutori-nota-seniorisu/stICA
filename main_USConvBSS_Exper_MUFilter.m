@@ -89,8 +89,6 @@ numSources = length(decompoMURaw.MU);
 corrThreshold = 0.3;  % 相关系数阈值
 
 % 初始化相关系数矩阵
-% crossCorrMatrix = zeros(numSources, numSources);
-
 % sources每一列的均值都近似于零，因而corr的值与xcorr在lag=0处的值近似相等
 % 使用corr计算，会忽视具有时延的相似性，因而导致冗余保留。（是否存在时延相似？）
 % 那就筛两遍。第一次用corr初步筛选，第二次用xcorr精细筛选。
