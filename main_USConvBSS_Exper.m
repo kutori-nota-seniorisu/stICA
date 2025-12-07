@@ -49,14 +49,14 @@ parfor i = 1:size(TVIDataFilter, 3)
 end
 
 % 时间5-100Hz带通滤波
-[Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
-for r = 1:size(TVIDataFilter, 1)
-    for c = 1:size(TVIDataFilter, 2)
-        tmp = squeeze(TVIDataFilter(r, c, :));
-        tmp = filtfilt(Be2, Ae2, tmp);
-        TVIDataFilter(r, c, :) = tmp;
-    end
-end
+% [Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
+% for r = 1:size(TVIDataFilter, 1)
+%     parfor c = 1:size(TVIDataFilter, 2)
+%         tmp = squeeze(TVIDataFilter(r, c, :));
+%         tmp = filtfilt(Be2, Ae2, tmp);
+%         TVIDataFilter(r, c, :) = tmp;
+%     end
+% end
 
 % 对每一列降采样
 parfor i = 1:size(TVIDataFilter, 3)

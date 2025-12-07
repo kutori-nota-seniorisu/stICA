@@ -18,12 +18,18 @@ catch ME
     rethrow(ME);
 end
 
-newdata = Data{1, 2};
-newdata(newdata > 32768) = newdata(newdata > 32768) - 2^16;
-trigger = newdata(end, :);
-[~, edges] = maxk(trigger, 2);
-edges = sort(edges);
+% newdata = Data{1, 2};
+% newdata(newdata > 32768) = newdata(newdata > 32768) - 2^16;
+% trigger = newdata(end, :);
+% [~, edges] = maxk(trigger, 2);
+% edges = sort(edges);
+% sEMG = newdata(1:end-2, edges(1):edges(2));
+
+newdata = Data';
+trigger = newdata(end-1, :);
+[~, edges] = findpeaks(trigger, 'MinPeakDistance', 10000, 'MinPeakProminence', 0.3);
 sEMG = newdata(1:end-2, edges(1):edges(2));
+
 lenEMG = length(sEMG);
 
 for ni = 1:2
@@ -33,8 +39,8 @@ for ni = 1:2
     decoderParameters.fsamp = fsamp;
     decoderParameters.TimeDifference = 0;
     decoderParameters.SpatialDifference = 0;
-    decoderParameters.ElectrodeType = 13;%13-5*13; 18-mouvi8*8%%%需要注意电极片位置
-    decoderParameters.BandpassFilter = 1;%10-500Hz带通滤波
+    decoderParameters.ElectrodeType = 18;%13-5*13; 18-mouvi8*8%%%需要注意电极片位置
+    decoderParameters.BandpassFilter = 1;%20-500Hz带通滤波
     decoderParameters.LineFilter = 1;%50Hz梳状滤波
     decoderParameters.ChannelFilter = 1;%去除不好的电极channel
     decoderParameters.extendingFactor = 10;%论文里是10c
@@ -44,8 +50,8 @@ for ni = 1:2
 
     [decompData,dataarray,datafilt,prohibitInd,decompChannelInd] = PreProcess4GUI_v2(data,decoderParameters);
 
-    for i = 1:5
-        for j = 1:13
+    for i = 1:8%5
+        for j = 1:8%13
             if ~isempty(dataarray{i, j})
                 sEMGArray(i, j, :) = dataarray{i, j};
             else
@@ -56,7 +62,7 @@ for ni = 1:2
 
     for mu = 1:numMU
         tmpPulses = pulsesRef{mu};
-        tmpPulses = round(tmpPulses/1000*2048);
+        tmpPulses = round(tmpPulses/2000*2048);
         if isempty(tmpPulses)
             continue;
         end
@@ -71,23 +77,23 @@ for ni = 1:2
         end
 
         arrayMUAP = {};
-        for r = 1:5
-            for c = 1:13
+        for r = 1:8%5
+            for c = 1:8%13
                 arrayMUAP{r, c} = squeeze(MUAP(r, c, :));
             end
         end
 
-        if ni == 1
-            arrayMUAP = rot90(arrayMUAP, 3);
-        elseif ni == 2
-            arrayMUAP = rot90(arrayMUAP);
-        end
+        % if ni == 1
+        %     arrayMUAP = rot90(arrayMUAP, 3);
+        % elseif ni == 2
+        %     arrayMUAP = rot90(arrayMUAP);
+        % end
 
 
         figure;
         ax = subplot('Position', [0.05, 0.05, 0.9, 0.9]);
         [~,maxAmp,maxPP,pos]=plotArrayPotential(arrayMUAP, 1, 1, ax);
         title(['MU ' num2str(mu) ' MUAP array ' num2str(ni)]);
-        set(gcf,'unit','normalized','position',[0.4,0.5,0.1,0.3]);
+        set(gcf,'unit','normalized','position',[0.4,0.5,0.3,0.3]);
     end
 end

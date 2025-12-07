@@ -163,7 +163,7 @@ plot(f, P1);
 fff = zeros(128,128);
 Row = 8; Col = 8;
 dRow = 4; dCol = 4;
-for mu=75%[4,5,11,20,21,22,54,55]
+for mu=[5,58]
     r = decompoMUFiltered.Row(mu);
     c = decompoMUFiltered.Col(mu);
     winRow = (1:Row)+(r-1)*dRow;
@@ -172,7 +172,17 @@ for mu=75%[4,5,11,20,21,22,54,55]
 end
 figure;
 imagesc(fff);
+xticklabels(6:6:36); xlabel('lateral (mm)')
+yticklabels(6:6:36); ylabel('axial (mm)');
+
 colorbar
+
+%%
+for i = 1:30000
+    image(Img(:,:,i));
+    colormap gray;
+    pause(0.002);
+end
 
 %% 取round会造成最大约0.5个样本点的误差，对应于0.25ms的误差。
 t = 0:1e-4:2;

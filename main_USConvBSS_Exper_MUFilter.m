@@ -304,7 +304,6 @@ lim = 100/1000*fsampu;
 
 fsampu = 2000;
 dIPI = round(0.010*fsampu);
-
 matchResultRaw = [];
 for i = 1:length(pulsesRef)
     for j = 1:length(decompoMUFiltered.MU)
@@ -320,7 +319,25 @@ matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA
 plotDecomps(decompoMUFiltered.Pulse, [], fsampu, 0, 0, []);
 % plotDecomps(decompoMURaw.Pulse, [], fsampu, 0, 0, []);
 plotDecomps(pulsesRef, [], fsampu, 0, 0, []);
-plotDecomps({pulsesRef{2}-61, decompoMUFiltered.Pulse{10}}, [], fsampu, 0, 0, []);
+plotDecomps({pulsesRef{13}, decompoMUFiltered.Pulse{8}}, [], fsampu, 0, 0, []);
+
+%%
+matchresult_time_raw = [];
+for i = 1:length(decompoMUFiltered.MU)
+    for j = 1:length(pulsesRef)
+        [Array1, Array2] = meshgrid(decompoMUFiltered.Pulse{i}, pulsesRef{j});
+        diff_values = Array1 - Array2;
+        valid_elements = diff_values <= (170/1000*fsampu) & diff_values >= (100/1000*fsampu);
+        count = sum(valid_elements(:));
+        r = count/(length(decompoMUFiltered.Pulse{i})+length(pulsesRef{j})-count);
+        if r > 1
+            r = 1;
+        end
+        spike_ROA_matrix(i, j) = r;
+        matchresult_time_raw(end+1,:) = [i, j, r];
+    end
+end
+matchresult_time_raw = array2table(matchresult_time_raw, 'VariableNames', {'decomp', 'ref', 'RoA'});
 
 %% 参考脉冲串内部去重，暂未纳入CKC后处理
 fsampu = 2000;
@@ -655,7 +672,7 @@ end
 
 %%
 numMU = length(decompoMUFiltered.MU);
-for i = 1:numMU
+for i = 1:10%numMU
     sss = decompoMUFiltered.Source(:, i);
     ttt = decompoMUFiltered.Twitch(:, i);
     tttf = decompoMUFiltered.TwitchFinal(:, i);
@@ -667,13 +684,14 @@ for i = 1:numMU
     xlim([4e3, 12e3]);
     xticks(4e3:2e3:12e3);
     xticklabels(2:1:6);
+    title('twitch')
 
     nexttile;
     plot(tttf);
     xlim([4e3, 12e3]);
     xticks(4e3:2e3:12e3);
     xticklabels(2:1:6);
-    title('twitch')
+    title('twitch final')
 
     nexttile;
     plot(sss);
@@ -684,5 +702,5 @@ for i = 1:numMU
     xticklabels(2:1:6);
     title('estimated source')
 
-    set(gcf,'unit','normalized','position',[0.3,0.4,0.4,0.3]);
+    set(gcf,'unit','normalized','position',[0.3,0.4,0.2,0.3]);
 end
