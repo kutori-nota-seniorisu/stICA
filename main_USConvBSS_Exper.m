@@ -87,8 +87,11 @@ tmpB = cell(numRows*numCols, 1);
 tmpSources = cell(numRows*numCols, 1);
 tmpDecompoPulses = cell(numRows*numCols, 1);
 tmpCoV = cell(numRows*numCols, 1);
-tmpTwitchesFinal = cell(numRows*numCols, 1);
+% tmpTwitchesFinal = cell(numRows*numCols, 1);
 tmpTwitches = cell(numRows*numCols, 1);
+
+tmpB1 = cell(numRows*numCols, 1);
+tmpB2 = cell(numRows*numCols, 1);
 
 parfor kkk = 1:(numRows*numCols)
     r = ceil(kkk / numCols);
@@ -133,18 +136,28 @@ parfor kkk = 1:(numRows*numCols)
     % 白化后的数据
     Z = WM * eY;
 
-    % 6.初始化矩阵B
+    % 6.初始化
+    % B对应于numCompo个分离向量
     B = zeros(ii, numCompo);
+    % twitches对应于一阶段迭代完成后的收缩曲线
     twitches = zeros(L, numCompo);
-    twitchesFinal = zeros(L, numCompo);
+    % twitchesFinal = zeros(L, numCompo);
+    % sources对应于二阶段迭代完成后的IPT曲线
     sources = zeros(L, numCompo);
+    % 提取得到的放电脉冲串
     decompo_pulses = cell(1, numCompo);
+    % 放电变异率
     CoV = zeros(1, numCompo);
+    % B1用来存储一阶段所有的分离向量
+    B1 = {};
+    % B2用来存储二阶段所有的分离向量
+    B2 = [];
 
     % 7.迭代更新
     for i = 1:numCompo
         iterCount = 0;
         w_new = randn(size(Z, 1), 1);
+        B1{i}(:, end+1) = w_new;
 
         while true
             w_old = w_new;
@@ -154,6 +167,7 @@ parfor kkk = 1:(numRows*numCols)
             w_new = w_new - B*B'*w_new;
             % 归一化处理
             w_new = w_new / norm(w_new);
+            B1{i}(:, end+1) = w_new;
             % 记录迭代次数
             iterCount = iterCount + 1;
             if abs(w_new'*w_old - 1) < Tolx || iterCount >= 1000
@@ -163,6 +177,7 @@ parfor kkk = 1:(numRows*numCols)
         end
         % 一阶段结果存储
         twitches(:, i) = Z' * w_new;
+        B2{i}(:, end+1) = w_new;
 
         CoV_new = Inf;
         countcount = 0;
@@ -172,6 +187,7 @@ parfor kkk = 1:(numRows*numCols)
             % MPD=50ms,R=20,nMAD=2
             [source_new, PT, CoV_new, ~] = blindDeconvPeakFinding(s, fsampu, 20, 2, 50, 2);
             w_new = mean(Z(:, PT), 2);
+            B2{i}(:, end+1) = w_new;
             countcount = countcount + 1;
             if CoV_new > CoV_old
                 disp(['r' num2str(r) 'c' num2str(c) ' #' num2str(i) ' 二阶段迭代' num2str(countcount) '次']);
@@ -182,7 +198,7 @@ parfor kkk = 1:(numRows*numCols)
         % 存储结果
         B(:, i) = w_new;
         sources(:, i) = source_new;
-        twitchesFinal(:, i) = s;
+        % twitchesFinal(:, i) = s;
         decompo_pulses{i} = PT;
         CoV(i) = CoV_new;
     end
@@ -192,7 +208,9 @@ parfor kkk = 1:(numRows*numCols)
     tmpDecompoPulses{kkk} = decompo_pulses;
     tmpCoV{kkk} = CoV;
     tmpTwitches{kkk} = twitches;
-    tmpTwitchesFinal{kkk} = twitchesFinal;
+    % tmpTwitchesFinal{kkk} = twitchesFinal;
+    tmpB1{kkk} = B1;
+    tmpB2{kkk} = B2;
 end
 
 toc;
@@ -203,10 +221,12 @@ disp(['数据迭代用时' num2str(toc)]);
 DecompoResults.B = reshape(tmpB, numRows, numCols)';
 DecompoResults.sources = reshape(tmpSources, numRows, numCols)';
 DecompoResults.twitches = reshape(tmpTwitches, numRows, numCols)';
-DecompoResults.twitchesFinal = reshape(tmpTwitchesFinal, numRows, numCols)';
+% DecompoResults.twitchesFinal = reshape(tmpTwitchesFinal, numRows, numCols)';
 DecompoResults.decompo_pulses = reshape(tmpDecompoPulses, numRows, numCols)';
 DecompoResults.CoV = reshape(tmpCoV, numRows, numCols)';
 
+DecompoResults.B1 = reshape(tmpB1, numRows, numCols)';
+DecompoResults.B2 = reshape(tmpB2, numRows, numCols)';
 % save([savepath '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
 % save(['./Data/experiment/24-06-21/UUS-iEMG/S1M1L' num2str(level) 'T' num2str(trial) '_USCBSS_compo' num2str(numCompo) '_' num2str(pp) '_2s1.mat'], 'DecompoResults', '-v7.3');
 save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_USCBSS_compo25F3.mat'], 'DecompoResults', '-v7.3');
