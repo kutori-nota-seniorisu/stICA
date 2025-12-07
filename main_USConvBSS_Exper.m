@@ -37,7 +37,7 @@ tic;
 TVIData = cat(3, zeros(395, 128, 20), TVIData);
 
 % filter the TVI data
-TVIDataFilter = TVIData(:,:,5001:25000);
+TVIDataFilter = TVIData;
 
 % 轴向0.5MHz低通滤波
 [Be1, Ae1] = butter(4, 0.5/(7.7*4)*2, 'low');
@@ -149,12 +149,15 @@ parfor kkk = 1:(numRows*numCols)
     % 放电变异率
     CoV = zeros(1, numCompo);
     % B1用来存储一阶段所有的分离向量
-    B1 = {};
+    B1 = cell(1, numCompo);
     % B2用来存储二阶段所有的分离向量
-    B2 = [];
+    B2 = cell(1, numCompo);
 
     % 7.迭代更新
     for i = 1:numCompo
+        B1{i} = [];
+        B2{i} = [];
+
         iterCount = 0;
         w_new = randn(size(Z, 1), 1);
         B1{i}(:, end+1) = w_new;
