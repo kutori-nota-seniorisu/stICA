@@ -292,6 +292,45 @@ end
 % end
 
 %% 脉冲串匹配
+% 肌电采样率2048Hz
+fsamp = 2048;
+load('./Data/experiment/25-07-04/M1L1T1_decompsRef.mat');
+pulsesAll = decompsRef.Pulses;
+muapsAll = decompsRef.MUAPs;
+numMU = length(pulsesAll);
+shiftAP = zeros(1, numMU);
+for mu = 1:numMU
+    tmpArray = plotArrayPotential(muapsAll{mu}, 1, 0);
+    tmpArrayDiff2 = cell(0);
+    for nr = 1:size(tmpArray, 1)
+        for nc = 1:size(tmpArray, 2)
+            if ~isempty(tmpArray{nr, nc})
+                % 对每个通道上的MUAP进行二次差分
+                tmpArrayDiff2{nr, nc} = diff(diff(tmpArray{nr, nc}));
+            end
+        end
+    end
+    [~, ~, ~, pos] = plotArrayPotential(tmpArrayDiff2, 1, 0);
+    tmptmp = tmpArrayDiff2{pos(1), pos(2)};
+    tmpInd = find(abs(tmptmp)>5*std(tmptmp));
+    if ~isempty(tmpInd)
+        shiftAP(mu) = tmpInd(1) - 64;
+    end
+end
+pulsesRef = cell(1, numMU);
+for mu = 1:numMU
+    pulsesRef{mu} = round((pulsesAll{mu}+shiftAP(mu))/fsamp*fsampu);
+    pulsesRef{mu}(pulsesRef{mu}<=0) = [];
+    pulsesRef{mu}(pulsesRef{mu}>=15*fsampu) = [];
+end
+
+for mu = 1:numMU
+    pulsesRef{mu}(pulsesRef{mu}<=5000) = [];
+    pulsesRef{mu}(pulsesRef{mu}>=25000) = [];
+    pulsesRef{mu} = pulsesRef{mu} - 5000;
+end
+
+%%
 load(['./Data/experiment/ICdata/R' sub '/pulsesRef.mat']);
 % 匹配容差为0~5ms
 winSize = [0, 5]/1000*fsampu;
@@ -323,7 +362,7 @@ for i = 1:length(decompoMUFiltered.MU)
     for j = 1:length(pulsesRef)
         [Array1, Array2] = meshgrid(decompoMUFiltered.Pulse{i}, pulsesRef{j});
         diff_values = Array1 - Array2;
-        valid_elements = diff_values <= (170/1000*fsampu) & diff_values >= (100/1000*fsampu);
+        valid_elements = diff_values <= (170/1000*fsampu) & diff_values >= (110/1000*fsampu);
         count = sum(valid_elements(:));
         r = count/(length(decompoMUFiltered.Pulse{i})+length(pulsesRef{j})-count);
         if r > 1
@@ -376,6 +415,109 @@ end
 % end
 %
 % matchResultRaw = array2table(matchResultRaw, 'VariableNames', {'ref', 'decomp', 'Lag', 'TP', 'FP', 'FN', 'match ratio', 'RoA'});
+%%
+r = 1; c = 4; mu = 24;
+
+r = 6; c = 21; mu = 1;
+B1 = DecompoResults.B1{r, c}{mu};
+B2 = DecompoResults.B2{r, c}{mu};
+
+load('./Data/experiment/25-07-04/TVIData_15000_S_wrl_M1_level1_trial1_Single_25-07-04.mat');
+disp('开始数据预处理');
+tic;
+% TVIData = cat(3, zeros(119, 128, 2), v_2d_all);
+TVIData = cat(3, zeros(395, 128, 20), TVIData);
+% filter the TVI data
+TVIDataFilter = TVIData;
+% 轴向0.5MHz低通滤波
+[Be1, Ae1] = butter(4, 0.5/(7.7*4)*2, 'low');
+for i = 1:size(TVIDataFilter, 3)
+    tmp = TVIDataFilter(:, :, i);
+    tmp = filtfilt(Be1, Ae1, tmp);
+    TVIDataFilter(:, :, i) = tmp;
+end
+% 时间5-100Hz带通滤波
+% [Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
+% for r = 1:size(TVIDataFilter, 1)
+%     for c = 1:size(TVIDataFilter, 2)
+%         tmp = squeeze(TVIDataFilter(r, c, :));
+%         tmp = filtfilt(Be2, Ae2, tmp);
+%         TVIDataFilter(r, c, :) = tmp;
+%     end
+% end
+% 对每一列降采样
+for i = 1:size(TVIDataFilter, 3)
+    tmp = TVIDataFilter(:, :, i);
+    tmp = resample(tmp, 128, 395);
+    TVITmp(:, :, i) = tmp;
+end
+TVIDataFilter = TVITmp;
+clear TVITmp TVIData;
+toc;
+disp(['数据预处理用时' num2str(toc)]);
+
+exFactor = 10;
+[M, N, L] = size(TVIDataFilter);
+% 窗口大小
+Row = 10; Col = 10;
+% 窗口移动距离
+dRow = 5; dCol = 5;
+% 窗口位置
+winRow = (1:Row)+(r-1)*dRow;
+winCol = (1:Col)+(c-1)*dCol;
+winRow(winRow>M) = [];
+winCol(winCol>N) = [];
+% 划取处理窗口
+TVIDataWin = TVIDataFilter(winRow, winCol, :);
+TVIDataWin = reshape(TVIDataWin, length(winRow)*length(winCol), []);
+% 2.沿着时间进行Z-score
+TVIDataWin = (TVIDataWin - mean(TVIDataWin, 2)) ./ std(TVIDataWin, 0, 2);
+% 3.数据拓展
+eY = extend(TVIDataWin, exFactor);
+eY = eY(:, 1:L);
+% 4.在每个维度上减去均值
+eY = stripmean(eY, 'st');
+% 5.白化
+% 协方差矩阵特征值分解
+[V, D] = eig(cov(eY'));
+[d, idx] = sort(diag(D), 'descend');
+V = V(:, idx);
+D = diag(d);
+% 选取贡献占比70%的特征值
+d = d ./ sum(d);
+cumuSum = cumsum(d);
+ii = find(cumuSum > 0.7, 1);
+% 生成新的特征向量与特征值
+D_new = D(1:ii, 1:ii) - mean(diag(D(ii+1:end, ii+1:end))) * eye(ii);
+V_new = V(:, 1:ii);
+% 白化矩阵WM，采用PCA白化格式
+WM = sqrt(D_new)\V_new';
+% 白化后的数据
+Z = WM * eY;
+
+figure;
+t = tiledlayout('vertical', 'TileSpacing', 'none', 'Padding', 'compact');
+for iii = 1:size(B1, 2)
+    www = B1(:, iii);
+    sss = www' * Z;
+    nexttile;
+    plot(sss);
+end
+
+figure;
+t = tiledlayout('vertical', 'TileSpacing', 'none', 'Padding', 'compact');
+for iii = 1:size(B2, 2)
+    www = B2(:, iii);
+    sss = www' * Z;
+    nexttile;
+    plot(sss);
+    title(['iii=' num2str(iii)]);
+    % [~,~,source_new]=est_spikes_deconv(sss, fsampu, 20, 2, 50);
+    [source_new, PT, CoV_new, ~] = blindDeconvPeakFinding(sss, fsampu, 20, 2, 50, 2);
+    nexttile;
+    plot(source_new);
+    title(['?iii=' num2str(iii)]);
+end
 
 %% 参考脉冲
 data = importdata('./Data/EMG/24-06-21/iEMG_S1_M1_level1_trial1_24-06-21_UUS.eaf'); % 读取eaf文件
@@ -624,7 +766,6 @@ xticklabels(0:1:4);
 xlabel('t/s'); ylabel('amplitude');
 title('二阶段迭代结果')
 
-
 %%
 numMU = length(decompoMURaw.MU);
 for i = 1:numMU
@@ -649,10 +790,10 @@ end
 
 %%
 numMU = length(decompoMUFiltered.MU);
-for i = 1:10%numMU
+for i = 1%:numMU
     sss = decompoMUFiltered.Source(:, i);
     ttt = decompoMUFiltered.Twitch(:, i);
-    tttf = decompoMUFiltered.TwitchFinal(:, i);
+    % tttf = decompoMUFiltered.TwitchFinal(:, i);
     ppp = decompoMUFiltered.Pulse{i};
     figure;
     tiledlayout('vertical', 'TileSpacing', 'tight', 'Padding', 'compact');
@@ -663,12 +804,12 @@ for i = 1:10%numMU
     xticklabels(2:1:6);
     title('twitch')
 
-    nexttile;
-    plot(tttf);
-    xlim([4e3, 12e3]);
-    xticks(4e3:2e3:12e3);
-    xticklabels(2:1:6);
-    title('twitch final')
+    % nexttile;
+    % plot(tttf);
+    % xlim([4e3, 12e3]);
+    % xticks(4e3:2e3:12e3);
+    % xticklabels(2:1:6);
+    % title('twitch final')
 
     nexttile;
     plot(sss);

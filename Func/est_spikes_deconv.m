@@ -1,4 +1,4 @@
-function [ST,locs]=est_spikes_deconv(X,fs,R,nMad,mpd)
+function [ST,locs,s]=est_spikes_deconv(X,fs,R,nMad,mpd)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Input:    S - unfused tetanus (velocity)

@@ -196,6 +196,19 @@ legend('y1', 'y2');
 figure;
 plot(t, abs(y1-y2));
 
+%% 取round会造成最大约0.5个样本点的误差，对应于0.25ms的误差。
+t = 0:1e-4:2;
+y1 = round(t*30000/30638);
+y2 = round(t*2000/2048);
+figure;
+plot(t,y1);
+hold on;
+plot(t,y2);
+legend('y1', 'y2');
+figure;
+plot(t, abs(y1-y2));
+
+
 %%
 Y=TVIData(5:6,7:8,:);
 [~,~,L] = size(Y);
@@ -255,7 +268,7 @@ for mu = 1:muNum
         f2 = P2 + P2.*exp(4*e*P3);
 
         F = f1 ./ f2;
-        
+
         pulse = zeros(1,2*fsampu);
         pulse(ipulses{mu}(i)) = 1;
 
@@ -444,10 +457,3 @@ xticks(4000:1000:8000);
 xticklabels(4:1:8);
 xlabel('t/s'); ylabel('amplitude');
 title('source');
-
-%%
-plotDecomps(decompoMUFiltered.Pulse, [], 1000, 0, 0, []);
-title('MU from US')
-
-plotDecomps(pulsesRef(1:8), [], 1000, 0, 0, []);
-title('MU from sEMG')
