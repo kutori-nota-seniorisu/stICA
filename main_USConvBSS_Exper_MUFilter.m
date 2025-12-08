@@ -335,27 +335,8 @@ for i = 1:length(decompoMUFiltered.MU)
 end
 matchresult_time_raw = array2table(matchresult_time_raw, 'VariableNames', {'decomp', 'ref', 'RoA'});
 
-%% 参考脉冲串内部去重，暂未纳入CKC后处理
+%% 参考脉冲串内部去重，纳入CKC后处理
 fsampu = 2000;
-dIPI = round(0.0005*fsampu);
-matchResultRaw = [];
-for i = 1:length(pulsesRef)
-    for j = 1:length(pulsesRef)
-        % 这里lag是参考脉冲串平移的点数。lag大于零说明参考脉冲串超前。
-        [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(pulsesRef{i},pulsesRef{j},dIPI,0);
-        [Sen,FA,Pre,Spe,Acc] = accEvaluation(pulsesRef{j},pulsesRef{i},dIPI,100);
-        [rr, ~] = RoA(pulsesRef{j},pulsesRef{i},100, dIPI);
-        matchResultRaw(end+1,:) = [i,j,rr,Lag,Sens,Sen,Miss,FalseAlarms,FA,Specificity,Spe,Pre,Acc,PulseStat.TP,PulseStat.FP,PulseStat.FN];
-    end
-end
-matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc', 'TP', 'FP', 'FN'});
-
-
-for mu = 1:length(pulsesRef)
-    MADRef(mu) = mad(diff(pulsesRef{mu}/fsampu*1000));
-    ISIRef(mu) = mean(diff(pulsesRef{mu}/fsampu*1000));
-    CoVRef(mu) = std(diff(pulsesRef{mu}/fsampu*1000))/mean(diff(pulsesRef{mu}/fsampu*1000));
-end
 
 for mu=1:length(decompoMUFiltered.MU)
     MADDecomp(mu) = mad(diff(decompoMUFiltered.Pulse{mu}/fsampu*1000));

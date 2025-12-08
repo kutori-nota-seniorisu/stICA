@@ -10,7 +10,7 @@ fsampu = 2000;
 % for sub = [3,4,5,7,10,11,12,14,15,16,17,18]
 % emgFile = ['./Data/experiment/ICdata/R' num2str(sub) '/R' num2str(sub) '.mat'];
 
-motion = 2; trial = 2;
+motion = 1; trial = 1;
 emgFile = ['./Data/EMG/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '.mat'];
 try
     load(emgFile);
@@ -18,7 +18,7 @@ catch ME
     rethrow(ME);
 end
 
-%% 根据不同数据类型进行修改
+%% step1 EMG处理，根据不同数据类型进行修改
 % ICData处理
 % newdata = Data{1, 2};
 % newdata(newdata > 32768) = newdata(newdata > 32768) - 2^16;
@@ -40,7 +40,7 @@ plot(edges(1), trigger(edges(1)), 'ro');
 plot(edges(2), trigger(edges(2)), 'ro');
 drawnow;
 
-%% CKC反解EMG
+%% step2 CKC反解EMG
 for ni = 1:2
     data = sEMG(64*(ni-1)+1:64*ni,:);
 
@@ -60,14 +60,25 @@ for ni = 1:2
     [decompData,dataarray,datafilt,prohibitInd,decompChannelInd] = PreProcess4GUI_v2(data,decoderParameters);
     decomps{ni} = IPTExtraction_gCKC4GUI_v3(decompData,decoderParameters); % classic gradient CKC
     decomps{ni}.decompChannelInd = decompChannelInd;
+
+    % 由元胞转成数组，方便后续计算MUAP
+    for i = 1:size(dataarray, 1)
+        for j = 1:size(dataarray, 2)
+            if ~isempty(dataarray{i, j})
+                sEMGArray(i, j+10*(ni-1), :) = dataarray{i, j}(edges(1):edges(2));
+            else
+                sEMGArray(i, j+10*(ni-1), :) = NaN;
+            end
+        end
+    end
 end
 
 % savepath = ['./Data/experiment/ICdata/R' num2str(sub) '/'];
 % save([savepath 'R' num2str(sub) '_decomps.mat'], 'decomps');
 
-save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_decomps.mat'], 'decomps');
+save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_decompsRaw.mat'], 'decomps');
 
-%% 绘制IPT
+%% step3 绘制IPT，查看分解结果
 for ni = 1:2
     plotDecomps(decomps{ni}.MUPulses, [], fsamp, 0, 0, []);
     IPTs = decomps{ni}.IPTs;
@@ -75,7 +86,7 @@ for ni = 1:2
     MUPulses = decomps{ni}.MUPulses;
 
     figure;
-    t = tiledlayout('vertical', 'TileSpacing', 'none', 'Padding', 'compact');
+    t = tiledlayout('flow', 'TileSpacing', 'none', 'Padding', 'compact');
     for mu = 1:size(IPTs, 1)
         nexttile;
         plot(IPTs(mu, :));
@@ -87,8 +98,9 @@ for ni = 1:2
     end
 end
 
-%% 保存参考脉冲串
+%% step4 按照筛选要求，保存参考脉冲串
 pulsesRef = {};
+CoV = [];
 for ni = 1:2
     PNRs = decomps{ni}.PNRs;
     MUPulses = decomps{ni}.MUPulses;
@@ -98,25 +110,150 @@ for ni = 1:2
             continue;
         end
 
-        tmp = MUPulses{mu};
+        tmpPulse = MUPulses{mu};
         % 截取15s
-        tmp = tmp(tmp >= edges(1) & tmp <= edges(2));
+        tmpPulse = tmpPulse(tmpPulse >= edges(1) & tmpPulse <= edges(2));
         % 对齐零时刻
-        tmp = tmp - edges(1);
+        tmpPulse = tmpPulse - edges(1);
         % 转换为超声采样率的时刻
-        tmp = round(tmp/fsamp*fsampu);
+        tmpPulse = round(tmpPulse/fsamp*fsampu);
+        % 放电变异率
+        tmpCoV = std(diff(tmpPulse/fsampu*1000))/mean(diff(tmpPulse/fsampu*1000));
 
-        if length(tmp) <= 15
+        if tmpCoV >= 0.5
+            disp(['ni#' num2str(ni) ' MU#' num2str(mu) ' 放电变异率过大，不保留']);
+            continue;
+        end
+        if length(tmpPulse) <= 15
             disp(['ni#' num2str(ni) ' MU#' num2str(mu) ' 放电时刻过少，不保留']);
             continue;
         end
-        if length(tmp) >= 15*35
+        if length(tmpPulse) >= 15*35
             disp(['ni#' num2str(ni) ' MU#' num2str(mu) ' 放电时刻过多，不保留']);
             continue;
         end
 
-        pulsesRef{end+1} = tmp;
+        pulsesRef{end+1} = tmpPulse;
+        CoV(end+1) = tmpCoV;
     end
 end
-save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_pulsesRef.mat'], 'pulsesRef');
 
+%% step5 参考脉冲串去重
+numMU = length(pulsesRef);
+dIPI = round(0.0005*fsampu);
+spikeRoAMatrix = zeros(numMU, numMU);
+% mmm=[];
+for i = 1:numMU
+    for j = i+1:numMU
+        % 计算两个脉冲串之间的RoA
+        [rr, lag] = RoA(pulsesRef{j}, pulsesRef{i}, 100, dIPI);
+        spikeRoAMatrix(i, j) = rr;
+        % mmm(end+1,:) = [i,j,rr,lag];
+    end
+end
+% mmm = array2table(mmm,'VariableNames',{'ref','decomp','RoA','Lag'});
+
+% 标记哪些元素被保留
+selectedIndices = true(1, numMU);  
+% 标记哪些对已经处理过
+processedPairs = false(numMU, numMU);  
+
+for i = 1:numMU
+    % 如果已经被标记删除，跳过
+    if ~selectedIndices(i)
+        continue;
+    end
+
+    for j = i+1:numMU
+        % 跳过已删除或已处理的配对
+        if ~selectedIndices(j) || processedPairs(i, j)
+            continue;
+        end
+
+        % 如果RoA大于0.9
+        if spikeRoAMatrix(i, j) >= 0.9
+            % 比较CoV，选择较小的一个
+            if CoV(i) <= CoV(j)
+                % 删除第j个
+                selectedIndices(j) = false;
+            else
+                % 删除第i个
+                selectedIndices(i) = false;
+                % 如果第i个被删除，跳出内层循环
+                break;
+            end
+        end
+
+        processedPairs(i, j) = true;
+    end
+end
+
+pulsesRef = pulsesRef(selectedIndices);
+CoV = CoV(selectedIndices);
+
+% 输出结果信息
+fprintf('原始元素数量: %d\n', numMU);
+fprintf('保留元素数量: %d\n', length(pulsesRef));
+fprintf('删除元素数量: %d\n', numMU - length(pulsesRef));
+
+% 显示被保留的索引
+fprintf('被保留的索引: ');
+fprintf('%d ', find(selectedIndices));
+fprintf('\n');
+
+% 显示被删除的索引
+deletedIndices = find(~selectedIndices);
+fprintf('被删除的索引: ');
+if ~isempty(deletedIndices)
+    fprintf('%d ', deletedIndices);
+else
+    fprintf('无');
+end
+fprintf('\n');
+
+%% step6 绘制MUAP
+numMU = length(pulsesRef);
+winSize = 128;
+lenEMG = diff(edges)+1;
+
+% 存储所有的MUAP阵列
+arrayMUAP = cell(1, numMU);
+
+for mu = 1:numMU
+    tmpP = pulsesRef{mu};
+    tmpP = round(tmpP/fsampu*fsamp);
+    MUAP = [];
+    for n = -winSize/2+1:winSize/2
+        tmpInd = tmpP + n;
+        tmpInd(tmpInd <= 0) = [];
+        tmpInd(tmpInd >= lenEMG) = [];
+        tmpMUAP = sEMGArray(:, :, tmpInd);
+        % 存储STA图像
+        MUAP(:, :, n+winSize/2) = mean(tmpMUAP, 3);
+    end
+
+    for r = 1:size(MUAP, 1)
+        for c = 1:size(MUAP, 2)
+            tmptmp = squeeze(MUAP(r, c, :));
+            if isempty(find(tmptmp))
+                arrayMUAP{mu}{r, c} = [];
+            else
+                arrayMUAP{mu}{r, c} = tmptmp';
+            end
+        end
+    end
+
+    figure;
+    ax = subplot('Position', [0.05, 0.05, 0.9, 0.9]);
+    [~,maxAmp,maxPP,pos]=plotArrayPotential(arrayMUAP{mu}, 1, 1, ax);
+    title(['MU ' num2str(mu) ' MUAP array ' num2str(ni)]);
+    set(gcf,'unit','normalized','position',[0.1,0.5,0.35,0.3]);
+end
+
+%% step7 保存结果
+% 用于充当参考的MU结果
+decompsRef.MUAPs = arrayMUAP;
+decompsRef.Pulses = pulsesRef;
+decompsRef.CoVs = CoV;
+
+save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_decompsRef.mat'], 'decompsRef');

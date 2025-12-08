@@ -2,16 +2,20 @@
 clear; clc; close all;
 addpath('./Func');
 
-sub = 16;
-disp(['Sub=' num2str(sub)]);
-load(['./Data/experiment/ICdata/R' num2str(sub) '/pulsesRef.mat']);
+% sub = 16;
+% disp(['Sub=' num2str(sub)]);
+% load(['./Data/experiment/ICdata/R' num2str(sub) '/pulsesRef.mat']);
+load('./Data/experiment/25-07-04/M1L1T1_pulsesRef.mat');
+% load('./Data/experiment/25-07-04/M1L1T1_decomps.mat');
+% pulsesRef = [decomps{1}.MUPulses,decomps{2}.MUPulses];
 numMU = length(pulsesRef);
 
 % EMG采样频率
 fsamp = 2048;
-winMUAP = [-50, 50];
+winMUAP = [-64, 64];
 
-emgFile = ['./Data/experiment/ICdata/R' num2str(sub) '/R' num2str(sub) '.mat'];
+% emgFile = ['./Data/experiment/ICdata/R' num2str(sub) '/R' num2str(sub) '.mat'];
+emgFile = './Data/EMG/25-07-04/M1L1T1.mat';
 try
     load(emgFile);
 catch ME
@@ -50,50 +54,48 @@ for ni = 1:2
 
     [decompData,dataarray,datafilt,prohibitInd,decompChannelInd] = PreProcess4GUI_v2(data,decoderParameters);
 
-    for i = 1:8%5
-        for j = 1:8%13
+    for i = 1:size(dataarray, 1)
+        for j = 1:size(dataarray, 2)
             if ~isempty(dataarray{i, j})
-                sEMGArray(i, j, :) = dataarray{i, j};
+                sEMGArray(i, j+10*(ni-1), :) = dataarray{i, j};
             else
-                sEMGArray(i, j, :) = NaN;
+                sEMGArray(i, j+10*(ni-1), :) = NaN;
+            end
+        end
+    end
+end
+
+for mu = 1:numMU
+    tmpPulses = pulsesRef{mu};
+    tmpPulses = round(tmpPulses/2000*2048);
+    if isempty(tmpPulses)
+        continue;
+    end
+    MUAP = zeros(0);
+    for n = winMUAP(1)+1:winMUAP(2)
+        tmpInd = tmpPulses + n;
+        tmpInd(tmpInd <= 0) = [];
+        tmpInd(tmpInd >= lenEMG) = [];
+        tmpMUAP = sEMGArray(:, :, tmpInd);
+        % 存储STA图像
+        MUAP(:, :, n-winMUAP(1)) = mean(tmpMUAP, 3);
+    end
+
+    arrayMUAP = {};
+    for r = 1:size(MUAP, 1)
+        for c = 1:size(MUAP, 2)
+            tmptmp = squeeze(MUAP(r, c, :));
+            if isempty(find(tmptmp))
+                arrayMUAP{r, c} = [];
+            else
+                arrayMUAP{r, c} = tmptmp';
             end
         end
     end
 
-    for mu = 1:numMU
-        tmpPulses = pulsesRef{mu};
-        tmpPulses = round(tmpPulses/2000*2048);
-        if isempty(tmpPulses)
-            continue;
-        end
-        MUAP = zeros(0);
-        for n = winMUAP(1)+1:winMUAP(2)
-            tmpInd = tmpPulses + n;
-            tmpInd(tmpInd <= 0) = [];
-            tmpInd(tmpInd >= lenEMG) = [];
-            tmpMUAP = sEMGArray(:, :, tmpInd);
-            % 存储STA图像
-            MUAP(:, :, n-winMUAP(1)) = mean(tmpMUAP, 3);
-        end
-
-        arrayMUAP = {};
-        for r = 1:8%5
-            for c = 1:8%13
-                arrayMUAP{r, c} = squeeze(MUAP(r, c, :));
-            end
-        end
-
-        % if ni == 1
-        %     arrayMUAP = rot90(arrayMUAP, 3);
-        % elseif ni == 2
-        %     arrayMUAP = rot90(arrayMUAP);
-        % end
-
-
-        figure;
-        ax = subplot('Position', [0.05, 0.05, 0.9, 0.9]);
-        [~,maxAmp,maxPP,pos]=plotArrayPotential(arrayMUAP, 1, 1, ax);
-        title(['MU ' num2str(mu) ' MUAP array ' num2str(ni)]);
-        set(gcf,'unit','normalized','position',[0.4,0.5,0.3,0.3]);
-    end
+    figure;
+    ax = subplot('Position', [0.05, 0.05, 0.9, 0.9]);
+    [~,maxAmp,maxPP,pos]=plotArrayPotential(arrayMUAP, 1, 1, ax);
+    title(['MU ' num2str(mu) ' MUAP array ' num2str(ni)]);
+    set(gcf,'unit','normalized','position',[0.1,0.5,0.35,0.3]);
 end
