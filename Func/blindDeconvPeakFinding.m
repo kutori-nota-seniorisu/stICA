@@ -38,7 +38,7 @@ D = diag(d+1e-6*max(d));
 % 白化矩阵WM，采用PCA白化格式
 WM = sqrt(D)\V';
 % 白化后的数据
-Z = WM * eS;
+Z = WM*eS;
 % 迭代更新
 w_new = randn(R, 1);
 % 迭代计数器
