@@ -17,7 +17,6 @@ saveTwitches = [];
 saveEnergyRatio = [];
 saveCoV = [];
 saveMAD = [];
-% saveTwitchesFinal = [];
 
 fsampu = 2000;
 % 计算放电串的MAD，大于25ms则去除
@@ -28,7 +27,6 @@ for r = 1:rn
         tmpPulses = DecompoResults.decompo_pulses{r, c};
         tmpSources = DecompoResults.sources{r, c};
         tmpTwitches = DecompoResults.twitches{r, c};
-        % tmpTwitchesFinal = DecompoResults.twitchesFinal{r, c};
         tmpCoV = DecompoResults.CoV{r, c};
         
         for mu = 1:length(tmpPulses)
@@ -48,8 +46,9 @@ for r = 1:rn
             ISIAll(r,c,mu) = mean(diff(tmpPulses{mu}/fsampu*1000));
             MADAll(r,c,mu) = MAD;
             CoVAll(r,c,mu) = tmpCoV(mu);
+            ERAll(r,c,mu) = energyRatio;
 
-            if energyRatio >= 20 && MAD <= 100
+            if energyRatio >= 20 && MAD <= 120
                 disp(['r=' num2str(r) ',c=' num2str(c) ',mu=' num2str(mu) '保留！']);
                 saveMUs(end+1) = mu;
                 saveRows(end+1) = r;
@@ -60,8 +59,6 @@ for r = 1:rn
                 saveEnergyRatio(end+1) = energyRatio;
                 saveMAD(end+1) = MAD;
                 saveCoV(end+1) = tmpCoV(mu);
-
-                % saveTwitchesFinal(:, end+1) = tmpTwitchesFinal(:, mu);
             end
         end
     end
@@ -75,8 +72,6 @@ decompoMURaw.Twitch = saveTwitches;
 decompoMURaw.ER = saveEnergyRatio;
 decompoMURaw.MAD = saveMAD;
 decompoMURaw.CoV = saveCoV;
-
-% decompoMURaw.TwitchFinal = saveTwitchesFinal;
 
 clear saveMUs saveRows saveCols savePulses saveSources saveTwitches saveEnergyRatio saveCoV;
 
@@ -134,8 +129,6 @@ decompoMUFiltered.Twitch = decompoMURaw.Twitch(:, selectedIndices);
 decompoMUFiltered.ER = decompoMURaw.ER(selectedIndices);
 decompoMUFiltered.MAD = decompoMURaw.MAD(selectedIndices);
 decompoMUFiltered.CoV = decompoMURaw.CoV(selectedIndices);
-
-% decompoMUFiltered.TwitchFinal = decompoMURaw.TwitchFinal(:, selectedIndices);
 
 % 输出结果信息
 fprintf('原始元素数量: %d\n', numSources);
@@ -221,8 +214,6 @@ decompoMUFiltered.ER = decompoMUFiltered.ER(selectedIndices);
 decompoMUFiltered.MAD = decompoMUFiltered.MAD(selectedIndices);
 decompoMUFiltered.CoV = decompoMUFiltered.CoV(selectedIndices);
 
-% decompoMUFiltered.TwitchFinal = decompoMURaw.TwitchFinal(:, selectedIndices);
-
 % 输出结果信息
 fprintf('原始元素数量: %d\n', numSources);
 fprintf('保留元素数量: %d\n', length(decompoMUFiltered.MU));
@@ -275,6 +266,8 @@ for axes = 1:ceil(numMU/figNum)
     ylabel(t, 'amplitude');
 end
 
+plotDecomps(decompoMUFiltered.Pulse, [], fsampu, 0, 0, []);
+
 % numMU = length(decompoMUFiltered.MU);
 % for axes = 1:ceil(numMU/figNum)
 %     figure;
@@ -313,6 +306,11 @@ for mu = 1:numMU
     [~, ~, ~, pos] = plotArrayPotential(tmpArrayDiff2, 1, 0);
     tmptmp = tmpArrayDiff2{pos(1), pos(2)};
     tmpInd = find(abs(tmptmp)>5*std(tmptmp));
+
+    % [~,~,~,pos1] = plotArrayPotential(tmpArray,1,0);
+    % tmptmp1=tmpArray{pos1(1),pos1(2)};
+    % tmpInd1=find(abs(tmptmp1)>3*std(tmptmp1))
+
     if ~isempty(tmpInd)
         shiftAP(mu) = tmpInd(1) - 64;
     end
@@ -325,9 +323,8 @@ for mu = 1:numMU
 end
 
 for mu = 1:numMU
-    pulsesRef{mu}(pulsesRef{mu}<=5000) = [];
-    pulsesRef{mu}(pulsesRef{mu}>=25000) = [];
-    pulsesRef{mu} = pulsesRef{mu} - 5000;
+    pulsesRef{mu}(pulsesRef{mu}<=2000) = [];
+    pulsesRef{mu} = pulsesRef{mu} - 2000;
 end
 
 %%
@@ -344,25 +341,41 @@ for i = 1:length(pulsesRef)
     for j = 1:length(decompoMUFiltered.MU)
         % 这里lag是参考脉冲串平移的点数。lag大于零说明参考脉冲串超前。
         [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(pulsesRef{i},decompoMUFiltered.Pulse{j},dIPI,0);
-        [Sen,FA,Pre,Spe,Acc] = accEvaluation(decompoMUFiltered.Pulse{j},pulsesRef{i},dIPI,100);
-        [rr, ~] = RoA(decompoMUFiltered.Pulse{j},pulsesRef{i},100, dIPI);
+        [Sen,FA,Pre,Spe,Acc] = accEvaluation(decompoMUFiltered.Pulse{j},pulsesRef{i},dIPI,200);
+        [rr, ~] = RoA(decompoMUFiltered.Pulse{j},pulsesRef{i},200, dIPI);
         matchResultRaw(end+1,:) = [i,j,rr,Lag,Sens,Sen,Miss,FalseAlarms,FA,Specificity,Spe,Pre,Acc,PulseStat.TP,PulseStat.FP,PulseStat.FN];
     end
 end
 matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc', 'TP', 'FP', 'FN'});
 
+
+fsampu = 2000;
+dIPI = round(0.010*fsampu);
+matchResultRaw = [];
+for i = 1:length(decompoMUFiltered.MU)
+    for j = 1:length(decompoMUFiltered.MU)
+        % 这里lag是参考脉冲串平移的点数。lag大于零说明参考脉冲串超前。
+        [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(decompoMUFiltered.Pulse{i},decompoMUFiltered.Pulse{j},dIPI,0);
+        [Sen,FA,Pre,Spe,Acc] = accEvaluation(decompoMUFiltered.Pulse{j},decompoMUFiltered.Pulse{i},dIPI,200);
+        [rr, ~] = RoA(decompoMUFiltered.Pulse{j},decompoMUFiltered.Pulse{i},200, dIPI);
+        matchResultRaw(end+1,:) = [i,j,rr,Lag,Sens,Sen,Miss,FalseAlarms,FA,Specificity,Spe,Pre,Acc,PulseStat.TP,PulseStat.FP,PulseStat.FN];
+    end
+end
+matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc', 'TP', 'FP', 'FN'});
+
+
 plotDecomps(decompoMUFiltered.Pulse, [], fsampu, 0, 0, []);
 % plotDecomps(decompoMURaw.Pulse, [], fsampu, 0, 0, []);
 plotDecomps(pulsesRef, [], fsampu, 0, 0, []);
-plotDecomps({pulsesRef{13}, decompoMUFiltered.Pulse{8}}, [], fsampu, 0, 0, []);
+plotDecomps({pulsesRef{5}, decompoMUFiltered.Pulse{38}}, [], fsampu, 0, 0, []);
 
 %%
 matchresult_time_raw = [];
-for i = 1:length(decompoMUFiltered.MU)
+for i = 33%1:length(decompoMUFiltered.MU)
     for j = 1:length(pulsesRef)
         [Array1, Array2] = meshgrid(decompoMUFiltered.Pulse{i}, pulsesRef{j});
         diff_values = Array1 - Array2;
-        valid_elements = diff_values <= (170/1000*fsampu) & diff_values >= (110/1000*fsampu);
+        valid_elements = diff_values <= (-30/1000*fsampu) & diff_values >= (-70/1000*fsampu);
         count = sum(valid_elements(:));
         r = count/(length(decompoMUFiltered.Pulse{i})+length(pulsesRef{j})-count);
         if r > 1
@@ -374,13 +387,19 @@ for i = 1:length(decompoMUFiltered.MU)
 end
 matchresult_time_raw = array2table(matchresult_time_raw, 'VariableNames', {'decomp', 'ref', 'RoA'});
 
-%% 参考脉冲串内部去重，纳入CKC后处理
+%%
 fsampu = 2000;
 
 for mu=1:length(decompoMUFiltered.MU)
     MADDecomp(mu) = mad(diff(decompoMUFiltered.Pulse{mu}/fsampu*1000));
     ISIDecomp(mu) = mean(diff(decompoMUFiltered.Pulse{mu}/fsampu*1000));
-    CoVDecomp(mu) = std(diff(decompoMUFiltered.Pulse{mu}/fsampu*1000))/mean(diff(decompoMUFiltered.Pulse{mu}/fsampu*1000));
+    CoVDecomp(mu) = std(diff(decompoMUFiltered.Pulse{mu}))/mean(diff(decompoMUFiltered.Pulse{mu}));
+end
+
+for mu=1:length(pulsesRef)
+    MADRef(mu) = mad(diff(pulsesRef{mu}/fsampu*1000));
+    ISIRef(mu) = mean(diff(pulsesRef{mu}/fsampu*1000));
+    CoVRef(mu) = std(diff(pulsesRef{mu}))/mean(diff(pulsesRef{mu}));
 end
 
 % matchResultRaw = [];
@@ -416,9 +435,16 @@ end
 %
 % matchResultRaw = array2table(matchResultRaw, 'VariableNames', {'ref', 'decomp', 'Lag', 'TP', 'FP', 'FN', 'match ratio', 'RoA'});
 %%
-r = 1; c = 4; mu = 24;
+i = 1;
+r = decompoMURaw.Row(i);
+c = decompoMURaw.Col(i);
+mu = decompoMURaw.MU(i);
 
-r = 6; c = 21; mu = 1;
+i = 1;
+r = decompoMUFiltered.Row(i);
+c = decompoMUFiltered.Col(i);
+mu = decompoMUFiltered.MU(i);
+
 B1 = DecompoResults.B1{r, c}{mu};
 B2 = DecompoResults.B2{r, c}{mu};
 
@@ -496,7 +522,20 @@ WM = sqrt(D_new)\V_new';
 Z = WM * eY;
 
 figure;
-t = tiledlayout('vertical', 'TileSpacing', 'none', 'Padding', 'compact');
+t=tiledlayout('flow', 'TileSpacing', 'tight', 'Padding', 'compact');
+for iii = 1:size(Z,1)
+    nexttile;
+    plot(Z(iii,:));
+    xticks(0:2000:20000);
+    xticklabels(0:1:10);
+    kstest(Z(iii,:));
+end
+xlabel(t,'t (s)');
+ylabel(t, 'amplitude')
+sgtitle('白化后的数据，方差占比70%')
+
+figure;
+tiledlayout('vertical', 'TileSpacing', 'none', 'Padding', 'compact');
 for iii = 1:size(B1, 2)
     www = B1(:, iii);
     sss = www' * Z;
@@ -505,7 +544,7 @@ for iii = 1:size(B1, 2)
 end
 
 figure;
-t = tiledlayout('vertical', 'TileSpacing', 'none', 'Padding', 'compact');
+tiledlayout('vertical', 'TileSpacing', 'none', 'Padding', 'compact');
 for iii = 1:size(B2, 2)
     www = B2(:, iii);
     sss = www' * Z;
@@ -517,6 +556,29 @@ for iii = 1:size(B2, 2)
     nexttile;
     plot(source_new);
     title(['?iii=' num2str(iii)]);
+end
+
+figure;
+tiledlayout('vertical', 'TileSpacing', 'none', 'Padding', 'compact');
+w_new = B2(:,1);
+CoV_new = Inf;
+countcount = 0;
+while true
+    CoV_old = CoV_new;
+    s = w_new' * Z;
+        nexttile;
+    plot(s);
+    % MPD=50ms,R=20,nMAD=2
+    [source_new, PT, CoV_new, ~] = blindDeconvPeakFinding(s, fsampu, 20, 2, 50, 2);
+    w_new = mean(Z(:, PT), 2);
+        nexttile;
+    plot(source_new);
+    % B2{i}(:, end+1) = w_new;
+    countcount = countcount + 1;
+    if CoV_new > CoV_old
+        disp(['r' num2str(r) 'c' num2str(c) ' #' num2str(i) ' 二阶段迭代' num2str(countcount) '次']);
+        break;
+    end
 end
 
 %% 参考脉冲
@@ -545,7 +607,7 @@ for sub = 16%[3,4,5,7,10,11,12,14,15,16,17,18]
         IPT = decompoMUFiltered.Source(:, i);
         pulse = decompoMUFiltered.Pulse{i};
         Rows(i) = decompoMUFiltered.Row(i);
-        PNRs(i) = 10*log10( mean( IPT(pulse).^2 ) / mean( IPT(setdiff(1:length(IPT), pulse)).^2 ) );
+        PNRs(i) = 10*log10( mean(IPT(pulse).^2) / mean(IPT(setdiff(1:length(IPT), pulse)).^2) );
     end
     % save(['./Data/experiment/ICdata/R' num2str(sub) '/PNRs.mat'], 'PNRs', 'Rows');
 end
@@ -790,7 +852,7 @@ end
 
 %%
 numMU = length(decompoMUFiltered.MU);
-for i = 1%:numMU
+for i = 1:numMU
     sss = decompoMUFiltered.Source(:, i);
     ttt = decompoMUFiltered.Twitch(:, i);
     % tttf = decompoMUFiltered.TwitchFinal(:, i);

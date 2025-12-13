@@ -161,13 +161,19 @@ plot(f, P1);
 
 %%
 fff = zeros(128,128);
-Row = 8; Col = 8;
-dRow = 4; dCol = 4;
-for mu=[5,58]
+[M, N, ~] = size(TVIDataFilter);
+% 窗口大小
+Row = 10; Col = 10;
+% 窗口移动距离
+dRow = 5; dCol = 5;
+for mu=1:length(decompoMUFiltered.MU)
     r = decompoMUFiltered.Row(mu);
     c = decompoMUFiltered.Col(mu);
+    % 窗口位置
     winRow = (1:Row)+(r-1)*dRow;
     winCol = (1:Col)+(c-1)*dCol;
+    winRow(winRow>M) = [];
+    winCol(winCol>N) = [];
     fff(winRow,winCol) = fff(winRow,winCol)+1;
 end
 figure;

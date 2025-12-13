@@ -32,6 +32,9 @@ eS = eS(:, 1:size(S, 2));
 eS = eS - mean(eS, 2);
 % 协方差矩阵特征值分解
 [V, D] = eig(cov(eS'));
+[d, idx] = sort(diag(D), 'descend');
+V = V(:, idx);
+D = diag(d+1e-6*max(d));
 % 白化矩阵WM，采用PCA白化格式
 WM = sqrt(D)\V';
 % 白化后的数据
