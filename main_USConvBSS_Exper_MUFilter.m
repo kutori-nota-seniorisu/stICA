@@ -48,7 +48,7 @@ for r = 1:rn
             CoVAll(r,c,mu) = tmpCoV(mu);
             ERAll(r,c,mu) = energyRatio;
 
-            if energyRatio >= 20 && MAD <= 120
+            if energyRatio >= 20 && MAD <= 25%120
                 disp(['r=' num2str(r) ',c=' num2str(c) ',mu=' num2str(mu) '保留！']);
                 saveMUs(end+1) = mu;
                 saveRows(end+1) = r;
@@ -74,6 +74,7 @@ decompoMURaw.MAD = saveMAD;
 decompoMURaw.CoV = saveCoV;
 
 clear saveMUs saveRows saveCols savePulses saveSources saveTwitches saveEnergyRatio saveCoV;
+fprintf('保留元素数量: %d\n', length(decompoMURaw.MU));
 
 %% step2.1 以互相关系数为标准去重
 % 第一步：提取所有source信号
@@ -371,11 +372,11 @@ plotDecomps({pulsesRef{5}, decompoMUFiltered.Pulse{38}}, [], fsampu, 0, 0, []);
 
 %%
 matchresult_time_raw = [];
-for i = 33%1:length(decompoMUFiltered.MU)
+for i = 1:length(decompoMUFiltered.MU)
     for j = 1:length(pulsesRef)
         [Array1, Array2] = meshgrid(decompoMUFiltered.Pulse{i}, pulsesRef{j});
         diff_values = Array1 - Array2;
-        valid_elements = diff_values <= (-30/1000*fsampu) & diff_values >= (-70/1000*fsampu);
+        valid_elements = diff_values <= (50/1000*fsampu) & diff_values >= (10/1000*fsampu);
         count = sum(valid_elements(:));
         r = count/(length(decompoMUFiltered.Pulse{i})+length(pulsesRef{j})-count);
         if r > 1
@@ -440,7 +441,7 @@ r = decompoMURaw.Row(i);
 c = decompoMURaw.Col(i);
 mu = decompoMURaw.MU(i);
 
-i = 1;
+i = 38;
 r = decompoMUFiltered.Row(i);
 c = decompoMUFiltered.Col(i);
 mu = decompoMUFiltered.MU(i);

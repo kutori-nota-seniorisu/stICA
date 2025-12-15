@@ -10,8 +10,11 @@ load(['./Data/experiment/ICdata/R' num2str(sub) '/USCBSS_DecompResult_MPD50.mat'
 numMU = length(decompoMUFiltered.MU);
 
 %% twitch区域，STA
-win = [-100, 100];
+% 超声采样率
 fsampu = 2000;
+% twitch曲线划取窗口长度100ms
+winSize = 100;
+
 
 % 导入超声速度图像
 % tviFile = ['./Data/experiment/ICdata/R' num2str(sub) '/v_2d_all.mat'];
@@ -21,7 +24,7 @@ load(tviFile);
 TVIData = cat(3, zeros(395, 128, 20), TVIData);
 
 % filter the TVI data
-TVIDataFilter = TVIData;
+TVIDataFilter = TVIData(:, :, 2001:end);
 
 % 轴向0.5MHz低通滤波
 [Be1, Ae1] = butter(4, 0.5/(7.7*4)*2, 'low');
@@ -52,28 +55,25 @@ clear TVITmp;
 
 [M, N, L] = size(TVIDataFilter);
 % 窗口大小
-% Row = 10; Col = 10;
-Row = 8; Col = 8;
+Row = 10; Col = 10;
+% Row = 8; Col = 8;
 % 窗口移动距离
-% dRow = 5; dCol = 5;
-dRow = 4; dCol = 4;
+dRow = 5; dCol = 5;
+% dRow = 4; dCol = 4;
 
-for mu = 1:numMU
+for mu = 61:numMU
     tmpPulses = decompoMUFiltered.Pulse{mu};
-    if isempty(tmpPulses)
-        continue;
-    end
     frameSTA = zeros(0);
     varSTA = zeros(0);
-    for n = win(1)+1:win(2)
+    for n = -winSize/2+1:winSize/2
         tmpInd = tmpPulses + n;
         tmpInd(tmpInd <= 0) = [];
-        tmpInd(tmpInd >= 30000) = [];
+        tmpInd(tmpInd >= L) = [];
         tmpTVI = TVIDataFilter(:, :, tmpInd);
         % 存储STA图像
-        frameSTA(:, :, n-win(1)) = mean(tmpTVI, 3);
+        frameSTA(:, :, n+winSize/2/1000*fsampu) = mean(tmpTVI, 3);
         % 存储方差图像
-        varSTA(:, :, n-win(1)) = var(tmpTVI, 0, 3);
+        varSTA(:, :, n+winSize/2/1000*fsampu) = var(tmpTVI, 0, 3);
     end
 
     r = decompoMUFiltered.Row(mu);
@@ -93,6 +93,7 @@ for mu = 1:numMU
     ax = subplot('Position', [0.05, 0.05, 0.9, 0.9]);
     [~,maxAmp,maxPP,pos]=plotArrayPotential(frameSTAROI, 1, 1, ax);
     title(['MU ' num2str(mu) ' twitch curve']);
+    set(gcf,'unit','normalized','position',[0.1,0.5,0.35,0.3]);
 end
 % end
 

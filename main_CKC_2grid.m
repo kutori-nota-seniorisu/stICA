@@ -10,13 +10,13 @@ fsampu = 2000;
 isLoad = 0;
 
 % for sub = [3,4,5,7,10,11,12,14,15,16,17,18]
-sub = 3;
-emgFile = ['./Data/experiment/ICdata/R' num2str(sub) '/R' num2str(sub) '.mat'];
+% sub = 3;
+% emgFile = ['./Data/experiment/ICdata/R' num2str(sub) '/R' num2str(sub) '.mat'];
 
-% motion = 1;
-% trial = 1;
-% disp(['M' num2str(motion) 'L1T' num2str(trial)]);
-% emgFile = ['./Data/EMG/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '.mat'];
+motion = 1;
+trial = 1;
+disp(['M' num2str(motion) 'L1T' num2str(trial)]);
+emgFile = ['./Data/EMG/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '.mat'];
 
 try
     load(emgFile);
@@ -26,17 +26,17 @@ end
 
 %% step1 EMG处理，根据不同数据类型进行修改
 % ICData处理
-newdata = Data{1, 2};
-newdata(newdata > 32768) = newdata(newdata > 32768) - 2^16;
-trigger = newdata(end, :);
-[~, edges] = maxk(trigger, 2);
-edges = sort(edges);
-sEMG = newdata(1:end-2, :);
-
-% newdata = Data';
-% trigger = newdata(end-1, :);
-% [~, edges] = findpeaks(trigger, 'MinPeakDistance', 10000, 'MinPeakProminence', 0.3);
+% newdata = Data{1, 2};
+% newdata(newdata > 32768) = newdata(newdata > 32768) - 2^16;
+% trigger = newdata(end, :);
+% [~, edges] = maxk(trigger, 2);
+% edges = sort(edges);
 % sEMG = newdata(1:end-2, :);
+
+newdata = Data';
+trigger = newdata(end-1, :);
+[~, edges] = findpeaks(trigger, 'MinPeakDistance', 10000, 'MinPeakProminence', 0.3);
+sEMG = newdata(1:end-2, :);
 
 % 绘制trigger图像
 figure;
@@ -265,13 +265,13 @@ end
 
 %% step7 保存结果
 % 分解的原始结果
-save(['./Data/experiment/ICdata/R' num2str(sub) '/R' num2str(sub) '_decompsRaw.mat'], 'decomps');
-% save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_decompsRaw.mat'], 'decomps');
+% save(['./Data/experiment/ICdata/R' num2str(sub) '/R' num2str(sub) '_decompsRaw.mat'], 'decomps');
+save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_decompsRaw.mat'], 'decomps');
 
 % 用于充当参考的MU结果
 decompsRef.MUAPs = arrayMUAP;
 decompsRef.Pulses = pulsesRef;
 decompsRef.CoVs = CoV;
 
-save(['./Data/experiment/ICdata/R' num2str(sub) '/R' num2str(sub) '_decompsRef.mat'], 'decompsRef');
-% save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_decompsRef.mat'], 'decompsRef');
+% save(['./Data/experiment/ICdata/R' num2str(sub) '/R' num2str(sub) '_decompsRef.mat'], 'decompsRef');
+save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_decompsRef.mat'], 'decompsRef');
