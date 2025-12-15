@@ -18,7 +18,7 @@ saveEnergyRatio = [];
 saveCoV = [];
 saveMAD = [];
 
-fsampu = 2000;
+fsampu = 1000;
 % 计算放电串的MAD，大于25ms则去除
 % 计算估计源在6-14Hz内的能量占比，小于20%则去除
 [rn, cn] = size(DecompoResults.sources);

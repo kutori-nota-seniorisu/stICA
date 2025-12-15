@@ -3,8 +3,6 @@ function [source, PT, CoV, w_new] = blindDeconvPeakFinding(S, fs, R, nMAD, MPD, 
 % 这是一种采用卷积盲源分离获取spike train的方法，
 % 输入为估计源，可以是ICA后得到的单个时间成分，也可以是对USS进行CBSS后的粗略估计源
 %
-% 
-%
 % Inputs:
 %   S - estimated twitch
 %   fs - sample rate
@@ -34,7 +32,7 @@ eS = eS - mean(eS, 2);
 [V, D] = eig(cov(eS'));
 [d, idx] = sort(diag(D), 'descend');
 V = V(:, idx);
-D = diag(d+1e-6*max(d));
+D = diag(d+1e-3*max(d));
 % 白化矩阵WM，采用PCA白化格式
 WM = sqrt(D)\V';
 % 白化后的数据

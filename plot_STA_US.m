@@ -12,9 +12,8 @@ numMU = length(decompoMUFiltered.MU);
 %% twitch区域，STA
 % 超声采样率
 fsampu = 2000;
-% twitch曲线划取窗口长度100ms
-winSize = 100;
-
+% twitch曲线划取窗口长度100ms，并转换成样本点
+winSize = 100/1000*fsampu;
 
 % 导入超声速度图像
 % tviFile = ['./Data/experiment/ICdata/R' num2str(sub) '/v_2d_all.mat'];
@@ -61,19 +60,19 @@ Row = 10; Col = 10;
 dRow = 5; dCol = 5;
 % dRow = 4; dCol = 4;
 
-for mu = 61:numMU
-    tmpPulses = decompoMUFiltered.Pulse{mu};
+for mu = 1:numMU
+    tmpPulse = decompoMUFiltered.Pulse{mu};
     frameSTA = zeros(0);
     varSTA = zeros(0);
     for n = -winSize/2+1:winSize/2
-        tmpInd = tmpPulses + n;
+        tmpInd = tmpPulse + n;
         tmpInd(tmpInd <= 0) = [];
         tmpInd(tmpInd >= L) = [];
         tmpTVI = TVIDataFilter(:, :, tmpInd);
         % 存储STA图像
-        frameSTA(:, :, n+winSize/2/1000*fsampu) = mean(tmpTVI, 3);
+        frameSTA(:, :, n+winSize/2) = mean(tmpTVI, 3);
         % 存储方差图像
-        varSTA(:, :, n+winSize/2/1000*fsampu) = var(tmpTVI, 0, 3);
+        varSTA(:, :, n+winSize/2) = var(tmpTVI, 0, 3);
     end
 
     r = decompoMUFiltered.Row(mu);
@@ -101,7 +100,6 @@ end
 %% EMG
 % EMG采样频率
 fsamp = 2048;
-winMUAP = [-50, 50];
 
 emgFile = ['./Data/experiment/ICdata/R' num2str(sub) '/R' num2str(sub) '.mat'];
 try
@@ -162,11 +160,11 @@ lenEMG = diff(edges)+1;
 arrayMUAP = cell(1, numMU);
 
 for mu = 1:numMU
-    tmpPulses = decompoMUFiltered.Pulse{mu};
-    tmpPulses = round(tmpPulses/1000*2048);
+    tmpPulse = decompoMUFiltered.Pulse{mu};
+    tmpPulse = round(tmpPulse/1000*2048);
     MUAP = [];
     for n = -winSize/2+1:winSize/2
-        tmpInd = tmpPulses + n;
+        tmpInd = tmpPulse + n;
         tmpInd(tmpInd <= 0) = [];
         tmpInd(tmpInd >= lenEMG) = [];
         tmpMUAP = sEMGArray(:, :, tmpInd);

@@ -2,13 +2,13 @@
 clear; clc; close all;
 addpath('./Func');
 % 拓展因子
-exFactor = 20;
+exFactor = 10;
 % 迭代容差
 Tolx = 1e-4;
 % 潜在成分个数
 numCompo = 15;
 % 超声采样率
-fsampu = 2000;
+fsampu = 1000;
 
 %% 开启并行池
 if isempty(gcp('nocreate'))
@@ -16,41 +16,40 @@ if isempty(gcp('nocreate'))
 end
 
 %% 读取数据并进行卷积盲源分离
-% for sub = [16]
+for sub = [17]
 
 % for exFactor = 10:10:40
 %     for numCompo = 5:10:25
 
 % for motion = 1%:2
 %     for trial = 1%:2
-motion = 1; trial = 1;
+% motion = 1; trial = 1;
 
 %% TVI数据预处理
 disp('导入数据');
 % 导入TVI数据
-% disp(['Sub=' num2str(sub)]);
-% tviFile = ['./Data/experiment/ICdata/R' num2str(sub) '/v_2d_all.mat'];
-disp(['M' num2str(motion) 'L1T' num2str(trial)]);
-tviFile = ['./Data/experiment/25-07-04/TVIData_15000_S_wrl_M' num2str(motion) '_level1_trial' num2str(trial) '_Single_25-07-04.mat'];
+disp(['Sub=' num2str(sub)]);
+tviFile = ['./Data/experiment/ICdata/R' num2str(sub) '/v_2d_all.mat'];
+% disp(['M' num2str(motion) 'L1T' num2str(trial)]);
+% tviFile = ['./Data/experiment/25-07-04/TVIData_15000_S_wrl_M' num2str(motion) '_level1_trial' num2str(trial) '_Single_25-07-04.mat'];
 load(tviFile);
 
 % 数据预处理
 disp('开始数据预处理');
 tic;
-% TVIData = cat(3, zeros(119, 128, 2), v_2d_all);
-TVIData = cat(3, zeros(395, 128, 20), TVIData);
+TVIData = cat(3, zeros(119, 128, 2), v_2d_all);
+% TVIData = cat(3, zeros(395, 128, 20), TVIData);
 
 % filter the TVI data
-TVIDataFilter = TVIData(:, :, 2001:end);
+TVIDataFilter = TVIData;%(:, :, 2001:end);
 
 % 轴向0.5MHz低通滤波
-[Be1, Ae1] = butter(4, 0.5/(7.7*4)*2, 'low');
-% [Be1, Ae1] = butter(4, [1,14]/(7.7*4)*2);
-parfor i = 1:size(TVIDataFilter, 3)
-    tmp = TVIDataFilter(:, :, i);
-    tmp = filtfilt(Be1, Ae1, tmp);
-    TVIDataFilter(:, :, i) = tmp;
-end
+% [Be1, Ae1] = butter(4, 0.5/(7.7*4)*2, 'low');
+% parfor i = 1:size(TVIDataFilter, 3)
+%     tmp = TVIDataFilter(:, :, i);
+%     tmp = filtfilt(Be1, Ae1, tmp);
+%     TVIDataFilter(:, :, i) = tmp;
+% end
 
 % 时间5-100Hz带通滤波
 [Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
@@ -63,13 +62,13 @@ for r = 1:size(TVIDataFilter, 1)
 end
 
 % 对每一列降采样
-parfor i = 1:size(TVIDataFilter, 3)
-    tmp = TVIDataFilter(:, :, i);
-    tmp = resample(tmp, 128, 395);
-    TVITmp(:, :, i) = tmp;
-end
-TVIDataFilter = TVITmp;
-clear TVITmp;
+% parfor i = 1:size(TVIDataFilter, 3)
+%     tmp = TVIDataFilter(:, :, i);
+%     tmp = resample(tmp, 128, 395);
+%     TVITmp(:, :, i) = tmp;
+% end
+% TVIDataFilter = TVITmp;
+% clear TVITmp;
 
 toc;
 disp(['数据预处理用时' num2str(toc)]);
@@ -91,7 +90,6 @@ tmpB = cell(numRows*numCols, 1);
 tmpSources = cell(numRows*numCols, 1);
 tmpDecompoPulses = cell(numRows*numCols, 1);
 tmpCoV = cell(numRows*numCols, 1);
-% tmpTwitchesFinal = cell(numRows*numCols, 1);
 tmpTwitches = cell(numRows*numCols, 1);
 
 tmpB1 = cell(numRows*numCols, 1);
@@ -145,7 +143,6 @@ parfor kkk = 1:(numRows*numCols)
     B = zeros(ii, numCompo);
     % twitches对应于一阶段迭代完成后的收缩曲线
     twitches = zeros(L, numCompo);
-    % twitchesFinal = zeros(L, numCompo);
     % sources对应于二阶段迭代完成后的IPT曲线
     sources = zeros(L, numCompo);
     % 提取得到的放电脉冲串
@@ -205,7 +202,6 @@ parfor kkk = 1:(numRows*numCols)
         % 存储结果
         B(:, i) = w_new;
         sources(:, i) = source_new;
-        % twitchesFinal(:, i) = s;
         decompo_pulses{i} = PT;
         CoV(i) = CoV_new;
     end
@@ -215,7 +211,6 @@ parfor kkk = 1:(numRows*numCols)
     tmpDecompoPulses{kkk} = decompo_pulses;
     tmpCoV{kkk} = CoV;
     tmpTwitches{kkk} = twitches;
-    % tmpTwitchesFinal{kkk} = twitchesFinal;
     tmpB1{kkk} = B1;
     tmpB2{kkk} = B2;
 end
@@ -224,22 +219,20 @@ toc;
 disp(['数据迭代用时' num2str(toc)]);
 
 %% 结果保存
-
 DecompoResults.B = reshape(tmpB, numRows, numCols)';
 DecompoResults.sources = reshape(tmpSources, numRows, numCols)';
 DecompoResults.twitches = reshape(tmpTwitches, numRows, numCols)';
-% DecompoResults.twitchesFinal = reshape(tmpTwitchesFinal, numRows, numCols)';
 DecompoResults.decompo_pulses = reshape(tmpDecompoPulses, numRows, numCols)';
 DecompoResults.CoV = reshape(tmpCoV, numRows, numCols)';
 
 DecompoResults.B1 = reshape(tmpB1, numRows, numCols)';
 DecompoResults.B2 = reshape(tmpB2, numRows, numCols)';
 
-% save([savepath '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
+save(['./Data/experiment/ICdata/R' num2str(sub) '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
 % save(['./Data/experiment/24-06-21/UUS-iEMG/S1M1L' num2str(level) 'T' num2str(trial) '_USCBSS_compo' num2str(numCompo) '_' num2str(pp) '_2s1.mat'], 'DecompoResults', '-v7.3');
-save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_USCBSS_R' num2str(exFactor) 'compo' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
+% save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_USCBSS_R' num2str(exFactor) 'compo' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
 disp('数据保存完成！');
-
+end
 %     end
 % end
 

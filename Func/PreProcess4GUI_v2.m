@@ -244,13 +244,13 @@ end
 chNum = size(Data,1);
 Data_new = Data;
 if BPFilter
-    LowFreq = 20;   % low frequency of passband 
+    LowFreq = 20;   % low frequency of passband
     HighFreq = 500; % high frequency of passband
     % signalQuality = 5;  % frequency criterion
 
-    % Bandpass filter the vector array Y, pass band LowFreq-HighFreq 
+    % Bandpass filter the vector array Y, pass band LowFreq-HighFreq
     [Be,Ae] = butter(4,[LowFreq/fsamp*2 HighFreq/fsamp*2]); % EMG band pass filter
-    
+
     for ch = 1:chNum
         Data_new(ch,:) = filtfilt(Be,Ae,Data_new(ch,:));%24/9/1 ´ÓfilterÐÞ¸Ä³Éfiltfilt
     end

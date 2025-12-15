@@ -4,13 +4,11 @@ addpath('./Func');
 
 % EMG采样频率
 fsamp = 2048;
-% US采样频率
-fsampu = 2000;
 % 是否导入反解结果，1为导入已反解的结果，0为用CKC反解
 isLoad = 0;
 
 % for sub = [3,4,5,7,10,11,12,14,15,16,17,18]
-% sub = 3;
+% sub = 17;
 % emgFile = ['./Data/experiment/ICdata/R' num2str(sub) '/R' num2str(sub) '.mat'];
 
 motion = 1;
@@ -55,7 +53,7 @@ for ni = 1:2
     decoderParameters.fsamp = fsamp;
     decoderParameters.TimeDifference = 0;
     decoderParameters.SpatialDifference = 0;
-    decoderParameters.ElectrodeType = 13; %13-5*13; 18-mouvi8*8%%%需要注意电极片位置
+    decoderParameters.ElectrodeType = 18; %13-5*13; 18-mouvi8*8%%%需要注意电极片位置
     decoderParameters.BandpassFilter = 1; %20-500Hz带通滤波
     decoderParameters.LineFilter = 1; %50Hz梳状滤波
     decoderParameters.ChannelFilter = 1; %去除不好的电极channel
@@ -125,8 +123,6 @@ for ni = 1:2
         tmpPulse = tmpPulse(tmpPulse >= edges(1) & tmpPulse <= edges(2));
         % 对齐零时刻
         tmpPulse = tmpPulse - edges(1);
-        % 转换为超声采样率的时刻
-        % tmpPulse = round(tmpPulse/fsamp*fsampu);
         % 放电变异率
         tmpCoV = std(diff(tmpPulse))/mean(diff(tmpPulse));
 
