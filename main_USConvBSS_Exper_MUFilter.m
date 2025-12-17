@@ -364,11 +364,24 @@ for i = 1:length(decompoMUFiltered.MU)
 end
 matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc', 'TP', 'FP', 'FN'});
 
+dIPI = round(0.010*fsampu);
+matchResultRaw = [];
+for i = 1:length(pulsesRef)
+    for j = 1:length(pulsesRef)
+        % 这里lag是参考脉冲串平移的点数。lag大于零说明参考脉冲串超前。
+        [PulseStat,SourceID,Lag,Sens,Miss,FalseAlarms,Specificity] = testSinResults(pulsesRef{i},pulsesRef{j},dIPI,0);
+        [Sen,FA,Pre,Spe,Acc] = accEvaluation(pulsesRef{j},pulsesRef{i},dIPI,200);
+        [rr, ~] = RoA(pulsesRef{j},pulsesRef{i},200, dIPI);
+        matchResultRaw(end+1,:) = [i,j,rr,Lag,Sens,Sen,Miss,FalseAlarms,FA,Specificity,Spe,Pre,Acc,PulseStat.TP,PulseStat.FP,PulseStat.FN];
+    end
+end
+matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA','Lag','Sens1','Sens2', 'Miss', 'FA1', 'FA2', 'Spe1','Spe2', 'Pre', 'Acc', 'TP', 'FP', 'FN'});
+
 
 plotDecomps(decompoMUFiltered.Pulse, [], fsampu, 0, 0, []);
 % plotDecomps(decompoMURaw.Pulse, [], fsampu, 0, 0, []);
 plotDecomps(pulsesRef, [], fsampu, 0, 0, []);
-plotDecomps({pulsesRef{5}, decompoMUFiltered.Pulse{38}}, [], fsampu, 0, 0, []);
+plotDecomps({pulsesRef{11}, decompoMUFiltered.Pulse{5}}, [], fsampu, 0, 0, []);
 
 %%
 matchresult_time_raw = [];
@@ -628,7 +641,7 @@ median(PNRsAll)
 % plotDecomps({pulsesRef{5},decompoMUFiltered(2).pulse}, [], 1000, 0, 0, []);
 
 %% 绘制23*25个区域的估计源信号
-fsampu = 2000;
+fsampu = 1000;
 [rn, cn] = size(DecompoResults.sources);
 for r = 1:rn
     for c = 1:cn
@@ -637,6 +650,7 @@ for r = 1:rn
         tmpTwitches = DecompoResults.twitches{r, c};
 
         ax = figure;
+        tiledlayout('flow', 'TileSpacing', 'compact', 'Padding', 'compact');
         for mu = 1:length(tmpPulses)
             % 计算MAD，单位为ms
             MAD = mad(diff(tmpPulses{mu}/fsampu*1000));
@@ -650,25 +664,27 @@ for r = 1:rn
             energyTotal = trapz(freq(idxTotal), psd(idxTotal));
             energyRatio = energyInBand / energyTotal * 100;
 
-            subplot(10,5,mu+floor((mu-1)/5)*5);
+            nexttile;
+            % subplot(10,5,mu+floor((mu-1)/5)*5);
             plot(tmpTwitches(:,mu));
-            xlim([4000,12000]);
-            xticks(4000:2000:12000);
-            xticklabels(2:1:6);
+            xlim([0*fsampu,30*fsampu]);
+            xticks(0*fsampu:10*fsampu:30*fsampu);
+            xticklabels(0:10:30);
             xlabel('t/s'); ylabel('amplitude');
             title(['twitch mu=' num2str(mu)])
 
-            subplot(10,5,mu+ceil(mu/5)*5);
+            nexttile;
+            % subplot(10,5,mu+ceil(mu/5)*5);
             plot(tmpSources(:,mu));
-            xlim([4000,12000]);
-            xticks(4000:2000:12000);
-            xticklabels(2:1:6);
+            xlim([0*fsampu,30*fsampu]);
+            xticks(0*fsampu:10*fsampu:30*fsampu);
+            xticklabels(0:10:30);
             xlabel('t/s'); ylabel('amplitude');
             title(['source mu=' num2str(mu) '，MAD=' num2str(MAD) ',ER=' num2str(energyRatio) '%']);
         end
 
         set(gcf,'unit','normalized','position',[0,0,1,1]);
-        saveas(ax, ['./Results/250704M1L1T1F/r' num2str(r) 'c' num2str(c)], 'png');
+        saveas(ax, ['./Results/ttt/r' num2str(r) 'c' num2str(c)], 'png');
         close;
     end
 end

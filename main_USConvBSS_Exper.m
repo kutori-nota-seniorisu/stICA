@@ -2,13 +2,13 @@
 clear; clc; close all;
 addpath('./Func');
 % 拓展因子
-exFactor = 10;
+exFactor = 20;
 % 迭代容差
 Tolx = 1e-4;
 % 潜在成分个数
-numCompo = 15;
+numCompo = 10;
 % 超声采样率
-fsampu = 1000;
+fsampu = 2000;
 
 %% 开启并行池
 if isempty(gcp('nocreate'))
@@ -16,40 +16,40 @@ if isempty(gcp('nocreate'))
 end
 
 %% 读取数据并进行卷积盲源分离
-for sub = [17]
+% for sub = [17]
 
 % for exFactor = 10:10:40
 %     for numCompo = 5:10:25
 
-% for motion = 1%:2
-%     for trial = 1%:2
+for motion = 1:2
+    for trial = 1%:2
 % motion = 1; trial = 1;
 
 %% TVI数据预处理
 disp('导入数据');
 % 导入TVI数据
-disp(['Sub=' num2str(sub)]);
-tviFile = ['./Data/experiment/ICdata/R' num2str(sub) '/v_2d_all.mat'];
-% disp(['M' num2str(motion) 'L1T' num2str(trial)]);
-% tviFile = ['./Data/experiment/25-07-04/TVIData_15000_S_wrl_M' num2str(motion) '_level1_trial' num2str(trial) '_Single_25-07-04.mat'];
+% disp(['Sub=' num2str(sub)]);
+% tviFile = ['./Data/experiment/ICdata/R' num2str(sub) '/v_2d_all.mat'];
+disp(['M' num2str(motion) 'L1T' num2str(trial)]);
+tviFile = ['./Data/experiment/25-07-04/TVIData_15000_S_wrl_M' num2str(motion) '_level1_trial' num2str(trial) '_Single_25-07-04.mat'];
 load(tviFile);
 
 % 数据预处理
 disp('开始数据预处理');
 tic;
-TVIData = cat(3, zeros(119, 128, 2), v_2d_all);
-% TVIData = cat(3, zeros(395, 128, 20), TVIData);
+% TVIData = cat(3, zeros(119, 128, 2), v_2d_all);
+TVIData = cat(3, zeros(395, 128, 20), TVIData);
 
 % filter the TVI data
-TVIDataFilter = TVIData;%(:, :, 2001:end);
+TVIDataFilter = TVIData(:, :, 2001:end);
 
 % 轴向0.5MHz低通滤波
-% [Be1, Ae1] = butter(4, 0.5/(7.7*4)*2, 'low');
-% parfor i = 1:size(TVIDataFilter, 3)
-%     tmp = TVIDataFilter(:, :, i);
-%     tmp = filtfilt(Be1, Ae1, tmp);
-%     TVIDataFilter(:, :, i) = tmp;
-% end
+[Be1, Ae1] = butter(4, 0.5/(7.7*4)*2, 'low');
+parfor i = 1:size(TVIDataFilter, 3)
+    tmp = TVIDataFilter(:, :, i);
+    tmp = filtfilt(Be1, Ae1, tmp);
+    TVIDataFilter(:, :, i) = tmp;
+end
 
 % 时间5-100Hz带通滤波
 [Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
@@ -62,13 +62,13 @@ for r = 1:size(TVIDataFilter, 1)
 end
 
 % 对每一列降采样
-% parfor i = 1:size(TVIDataFilter, 3)
-%     tmp = TVIDataFilter(:, :, i);
-%     tmp = resample(tmp, 128, 395);
-%     TVITmp(:, :, i) = tmp;
-% end
-% TVIDataFilter = TVITmp;
-% clear TVITmp;
+parfor i = 1:size(TVIDataFilter, 3)
+    tmp = TVIDataFilter(:, :, i);
+    tmp = resample(tmp, 128, 395);
+    TVITmp(:, :, i) = tmp;
+end
+TVIDataFilter = TVITmp;
+clear TVITmp;
 
 toc;
 disp(['数据预处理用时' num2str(toc)]);
@@ -228,10 +228,11 @@ DecompoResults.CoV = reshape(tmpCoV, numRows, numCols)';
 DecompoResults.B1 = reshape(tmpB1, numRows, numCols)';
 DecompoResults.B2 = reshape(tmpB2, numRows, numCols)';
 
-save(['./Data/experiment/ICdata/R' num2str(sub) '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
+% save(['./Data/experiment/ICdata/R' num2str(sub) '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
 % save(['./Data/experiment/24-06-21/UUS-iEMG/S1M1L' num2str(level) 'T' num2str(trial) '_USCBSS_compo' num2str(numCompo) '_' num2str(pp) '_2s1.mat'], 'DecompoResults', '-v7.3');
-% save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_USCBSS_R' num2str(exFactor) 'compo' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
+save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_USCBSS_R' num2str(exFactor) 'C' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
 disp('数据保存完成！');
+    end
 end
 %     end
 % end

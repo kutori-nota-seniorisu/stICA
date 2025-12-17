@@ -271,3 +271,4 @@ decompsRef.CoVs = CoV;
 
 % save(['./Data/experiment/ICdata/R' num2str(sub) '/R' num2str(sub) '_decompsRef.mat'], 'decompsRef');
 save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_decompsRef.mat'], 'decompsRef');
+% end
