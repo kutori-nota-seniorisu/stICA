@@ -18,7 +18,7 @@ saveEnergyRatio = [];
 saveCoV = [];
 saveMAD = [];
 
-fsampu = 1000;
+fsampu = 2000;
 % 计算放电串的MAD，大于25ms则去除
 % 计算估计源在6-14Hz内的能量占比，小于20%则去除
 [rn, cn] = size(DecompoResults.sources);
@@ -48,7 +48,7 @@ for r = 1:rn
             CoVAll(r,c,mu) = tmpCoV(mu);
             ERAll(r,c,mu) = energyRatio;
 
-            if energyRatio >= 20 && MAD <= 25%120
+            if energyRatio >= 20 && MAD <= 100%120
                 disp(['r=' num2str(r) ',c=' num2str(c) ',mu=' num2str(mu) '保留！']);
                 saveMUs(end+1) = mu;
                 saveRows(end+1) = r;
@@ -319,13 +319,9 @@ end
 pulsesRef = cell(1, numMU);
 for mu = 1:numMU
     pulsesRef{mu} = round((pulsesAll{mu}+shiftAP(mu))/fsamp*fsampu);
+    pulsesRef{mu} = pulsesRef{mu}-2000;
     pulsesRef{mu}(pulsesRef{mu}<=0) = [];
     pulsesRef{mu}(pulsesRef{mu}>=15*fsampu) = [];
-end
-
-for mu = 1:numMU
-    pulsesRef{mu}(pulsesRef{mu}<=2000) = [];
-    pulsesRef{mu} = pulsesRef{mu} - 2000;
 end
 
 %%
@@ -382,7 +378,7 @@ plotDecomps(decompoMUFiltered.Pulse, [], fsampu, 0, 0, []);
 % plotDecomps(decompoMURaw.Pulse, [], fsampu, 0, 0, []);
 plotDecomps(pulsesRef, [], fsampu, 0, 0, []);
 plotDecomps({pulsesRef{11}, decompoMUFiltered.Pulse{5}}, [], fsampu, 0, 0, []);
-
+plotDecomps({pulsesRef{7},pulsesRef{6}}, [], fsampu, 0, 0, []);
 %%
 matchresult_time_raw = [];
 for i = 1:length(decompoMUFiltered.MU)
@@ -878,9 +874,9 @@ for i = 1:numMU
     tiledlayout('vertical', 'TileSpacing', 'tight', 'Padding', 'compact');
     nexttile;
     plot(ttt);
-    xlim([4e3, 12e3]);
-    xticks(4e3:2e3:12e3);
-    xticklabels(2:1:6);
+    xlim([4*fsampu,8*fsampu]);
+    xticks(4*fsampu:fsampu:8*fsampu);
+    xticklabels(4:1:8);
     title('twitch')
 
     % nexttile;
@@ -894,9 +890,9 @@ for i = 1:numMU
     plot(sss);
     hold on;
     plot(ppp, sss(ppp), 'ro');
-    xlim([4e3, 12e3]);
-    xticks(4e3:2e3:12e3);
-    xticklabels(2:1:6);
+    xlim([4*fsampu,8*fsampu]);
+    xticks(4*fsampu:fsampu:8*fsampu);
+    xticklabels(4:1:8);
     title('estimated source')
 
     set(gcf,'unit','normalized','position',[0.3,0.4,0.2,0.3]);

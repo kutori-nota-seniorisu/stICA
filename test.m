@@ -68,14 +68,25 @@ std(RoA)
 median(RoA)
 
 %%
-for ni = 1:2
-    for mu = 1:length(decomps{ni}.MUPulses)
-        tmp = decomps{ni}.MUPulses{mu};
-        % tmp = tmp(tmp >= edges(1) & tmp <= edges(2));
-        % tmp = tmp - edges(1);
-        % tmp = round(tmp/fsamp*fsampu);
-        pulsesRef{end+1} = tmp;
+for iii = 1:length(varFrames)
+    vvv=varFrames{iii};
+    [rn,cn,~] = size(vvv);
+    vvvPlot = cell(0);
+    for r = 1:rn
+        for c = 1:cn
+            vvvPlot{r,c} = squeeze(vvv(r,c,:))';
+        end
     end
+    figure;
+    ax = subplot('Position', [0.05, 0.05, 0.9, 0.9]);
+    plotArrayPotential(vvvPlot, 1, 1, ax);
+end
+%%
+for iii=1:length(ppps)
+    p = ppps(iii).values;
+    p(p<=edges(1))=[];
+    p(p>=edges(2))=[];
+    pulses{iii} = p;
 end
 %%
 mu = 43;

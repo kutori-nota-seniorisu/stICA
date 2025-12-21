@@ -8,7 +8,7 @@ Tolx = 1e-4;
 % 潜在成分个数
 numCompo = 10;
 % 超声采样率
-fsampu = 2000;
+fsampu = 1000;
 
 %% 开启并行池
 if isempty(gcp('nocreate'))
@@ -21,17 +21,26 @@ end
 % for exFactor = 10:10:40
 %     for numCompo = 5:10:25
 
-for motion = 1:2
-    for trial = 1%:2
+% for motion = 1:2
+%     for trial = 1:2
 % motion = 1; trial = 1;
+
+for level = 1:2
+    for trial = 1:2
+        for probe = 1:2
 
 %% TVI数据预处理
 disp('导入数据');
 % 导入TVI数据
 % disp(['Sub=' num2str(sub)]);
 % tviFile = ['./Data/experiment/ICdata/R' num2str(sub) '/v_2d_all.mat'];
-disp(['M' num2str(motion) 'L1T' num2str(trial)]);
-tviFile = ['./Data/experiment/25-07-04/TVIData_15000_S_wrl_M' num2str(motion) '_level1_trial' num2str(trial) '_Single_25-07-04.mat'];
+
+% disp(['M' num2str(motion) 'L1T' num2str(trial)]);
+% tviFile = ['./Data/experiment/25-07-04/TVIData_15000_S_wrl_M' num2str(motion) '_level1_trial' num2str(trial) '_Single_25-07-04.mat'];
+
+disp(['M1L' num2str(level) 'T' num2str(trial) 'P' num2str(probe)]);
+tviFile = ['./Data/experiment/24-06-21/UUS-iEMG/TVIData_S1_M1_level' num2str(level) '_trial' num2str(trial) '_Dual_24-06-21_' num2str(probe) '.mat'];
+
 load(tviFile);
 
 % 数据预处理
@@ -229,11 +238,14 @@ DecompoResults.B1 = reshape(tmpB1, numRows, numCols)';
 DecompoResults.B2 = reshape(tmpB2, numRows, numCols)';
 
 % save(['./Data/experiment/ICdata/R' num2str(sub) '/USCBSS_compo' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
-% save(['./Data/experiment/24-06-21/UUS-iEMG/S1M1L' num2str(level) 'T' num2str(trial) '_USCBSS_compo' num2str(numCompo) '_' num2str(pp) '_2s1.mat'], 'DecompoResults', '-v7.3');
-save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_USCBSS_R' num2str(exFactor) 'C' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
+save(['./Data/experiment/24-06-21/UUS-iEMG/S1M1L' num2str(level) 'T' num2str(trial) '_USCBSS_C' num2str(numCompo) '_' num2str(probe) '.mat'], 'DecompoResults', '-v7.3');
+% save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_USCBSS_R' num2str(exFactor) 'C' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
 disp('数据保存完成！');
+        end
     end
 end
+%     end
+% end
 %     end
 % end
 

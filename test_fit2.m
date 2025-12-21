@@ -4,70 +4,46 @@ addpath('./Func');
 % EMG采样率
 fsamp = 2048;
 % US采样率
-fsampu = 2000;
+fsampu = 1000;
 % STA窗口100ms
 winSize = 100/1000*fsampu;
 
-% STAFile = './Data/experiment/ICdata/R17/STA_DecompResult.mat';
-% BSSFile = './Data/experiment/ICdata/R17/USCBSS_DecompResult_C15.mat';
-% emgFile = './Data/experiment/ICdata/R17/R17_decompsRef.mat';
+STAFile = './Data/experiment/ICdata/R3/output_info.mat';
+BSSFile = './Data/experiment/ICdata/R3/USCBSS_DecompResult.mat';
+emgFile = './Data/experiment/ICdata/R3/R3.mat';
 % tviFile = './Data/experiment/ICdata/R17/v_2d_all.mat';
 
-motion = 2;
-STAFile = ['./Data/experiment/25-07-04/M' num2str(motion) 'L1T1_STA_DecompResult'];
-BSSFile = ['./Data/experiment/25-07-04/M' num2str(motion) 'L1T1_USCBSS_DecompResult'];
-emgFile = ['./Data/experiment/25-07-04/M' num2str(motion) 'L1T1_decompsRef.mat'];
-% tviFile = './Data/experiment/25-07-04/TVIData_15000_S_wrl_M1_level1_trial1_Single_25-07-04.mat';
 
 load(emgFile);
 % load(tviFile);
 load(STAFile);
 load(BSSFile);
 
-%% 脉冲串时移对齐
-pulsesAll = decompsRef.Pulses;
-muapsAll = decompsRef.MUAPs;
-numMU = length(pulsesAll);
-shiftAP = zeros(1, numMU);
-for mu = 1:numMU
-    tmpArray = plotArrayPotential(muapsAll{mu}, 1, 0);
-    tmpArrayDiff2 = cell(0);
-    for nr = 1:size(tmpArray, 1)
-        for nc = 1:size(tmpArray, 2)
-            if ~isempty(tmpArray{nr, nc})
-                % 对每个通道上的MUAP进行二次差分
-                tmpArrayDiff2{nr, nc} = diff(diff(tmpArray{nr, nc}));
-            end
-        end
-    end
-    [~, ~, ~, pos] = plotArrayPotential(tmpArrayDiff2, 1, 0);
-    tmptmp = tmpArrayDiff2{pos(1), pos(2)};
-    tmpInd = find(abs(tmptmp)>5*std(tmptmp));
-    if ~isempty(tmpInd)
-        shiftAP(mu) = tmpInd(1) - 64;
-    end
-end
-pulsesRef = cell(1, numMU);
-for mu = 1:numMU
-    % 转换成超声样本点时刻
-    pulsesRef{mu} = round((pulsesAll{mu}+shiftAP(mu))/fsamp*fsampu);
-    % 如果TVI去除了一部分，那就需要执行下面这一步。
-    pulsesRef{mu} = pulsesRef{mu}-fsampu;
-    % US-STA窗口为100帧，故去除无法提取到完整100帧图像的pulse
-    pulsesRef{mu}(pulsesRef{mu}<=(0+winSize/2)) = [];
-    pulsesRef{mu}(pulsesRef{mu}>=(14*fsampu-winSize/2)) = [];
-end
+newdata = Data{1, 2};
+newdata(newdata > 32768) = newdata(newdata > 32768) - 2^16;
+trigger = newdata(end, :);
+[~, edges] = maxk(trigger, 2);
+edges = sort(edges);
+
 
 %% twitch curve from BSS
 % 用EMG-MU的spike对US-MU的twitch train进行STA，得到twitch curve
-twitches = decompoMUFiltered.Twitch;
+twitches = decompoMUFiltered.Twitch(:,1:4);
 % twitches = decompoMURaw.Twitch;
 % 用EMG对twitch train进行STA的结果存储
 twitchCurveBSS = cell(0);
 varBSS = cell(0);
 twitchPP = cell(0);
+numMU = length(output_info);
 for mu = 1:numMU
-    tmpPulse = pulsesRef{mu};
+    output = output_info(mu);
+    if isempty(output.Number_active_MUs)
+        continue;
+    end  
+    tmpPulse = output.MUFiring_in_region;
+    tmpPulse = tmpPulse-edges(1);
+    tmpPulse(tmpPulse<=50) = [];
+    tmpPulse(tmpPulse>=(30000-50)) = [];
     for n = -winSize/2+1:winSize/2
         tmpInd = tmpPulse + n;
         tmpTwitch = twitches(tmpInd, :);
@@ -84,12 +60,13 @@ end
 %% twitch area from BSS
 % 存储BSS区域
 twitchAreaBSS = cell(0);
-[M, N] = size(activation{1});
+% [M, N] = size(activation{1});
+M = 39; N = 128;
 % 窗口大小
 Row = 10; Col = 10;
 % 窗口移动距离
 dRow = 5; dCol = 5;
-for mu = 1:length(decompoMUFiltered.MU)
+for mu = 1:4
     tmpImg = zeros([M, N]);
     r = decompoMUFiltered.Row(mu);
     c = decompoMUFiltered.Col(mu);
@@ -103,22 +80,30 @@ end
 
 %% twitch area from STA
 twitchAreaSTA = cell(0);
+twitchCurves = cell(0);
 for mu = 1:numMU
-    tmpImg = cell(0);
-    uuimage = activation{mu};
-    threshVal = 0.65*max(abs(uuimage(:)));
-    tmp = uuimage;
-    for na = 1:2
-        if na == 1
-            tmpInd = find(tmp>threshVal);
-        else
-            tmpInd = find(tmp<-threshVal);
-        end
-        tmptmp = zeros([M, N]);
-        tmptmp(tmpInd) = 2;
-        tmpImg{na} = tmptmp;
+    output = output_info(mu);
+    if isempty(output.Number_active_MUs)
+        continue;
     end
+    tmpImg = cell(0);
+
+    tmpInd = output.positive_indicies_lin;
+    tmptmp = zeros([39, 128]);
+    tmptmp(tmpInd) = 2;
+    tmpImg{1} = tmptmp;
+
+    tmpInd = output.negative_indicies_lin;
+    tmptmp = zeros([39, 128]);
+    tmptmp(tmpInd) = 2;
+    tmpImg{2} = tmptmp;
+
     twitchAreaSTA{mu} = tmpImg;
+
+    tmpCurve = cell(0);
+    tmpCurve{1} = output.positive_STA;
+    tmpCurve{2} = output.negative_STA;
+    twitchCurves{mu} = tmpCurve;
 end
 
 %% 将US-MU与EMG-MU进行候选匹配
@@ -129,12 +114,20 @@ for mu = 1:numMU
     plot(twitchPP{mu}, 'ro');
     [ppMax, idxMax] = max(twitchPP{mu});
     [ppMin, idxMin] = min(twitchPP{mu});
-    matchResult(end+1, :) = [mu, idxMax, ppMax, idxMin, ppMin];
+    if isempty(ppMax)
+        matchResult(end+1, :) = [mu,mu,mu,mu,mu];
+    else
+        matchResult(end+1, :) = [mu, idxMax, ppMax, idxMin, ppMin];
+    end
 end
 
 %% twitch curve相关系数计算
 rho = zeros(0);
 for i = 1:size(matchResult, 1)
+    output = output_info(i);
+    if isempty(output.Number_active_MUs)
+        continue;
+    end
     % 参考MU序号
     refMU = matchResult(i, 1);
     % 正PP值MU序号
@@ -176,15 +169,18 @@ for i = 1:size(matchResult, 1)
 end
 
 %%
-% for mu = 1:numMU
-%     tmpTTT = twitchCurveBSS{mu};
-%     figure;
-%     tiledlayout('flow', 'TileSpacing', 'tight', 'Padding', 'tight');
-%     for j = 1:size(tmpTTT, 2)
-%         nexttile;
-%         plot(tmpTTT(:, j));
-%         title(['MU #' num2str(j)])
-%     end
-% end
-% 
-% plotDecomps(decompoMUFiltered.Pulse, [], fsampu, 0, 0, []);
+for mu = 1:numMU
+    tmpTTT = twitchCurveBSS{mu};
+    if isempty(tmpTTT)
+        continue;
+    end
+    figure;
+    tiledlayout('flow', 'TileSpacing', 'tight', 'Padding', 'tight');
+    for j = 1:size(tmpTTT, 2)
+        nexttile;
+        plot(tmpTTT(:, j));
+        title(['MU #' num2str(j)])
+    end
+end
+
+plotDecomps(decompoMUFiltered.Pulse, [], fsampu, 0, 0, []);

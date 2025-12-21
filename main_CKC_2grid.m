@@ -11,7 +11,7 @@ isLoad = 0;
 % sub = 17;
 % emgFile = ['./Data/experiment/ICdata/R' num2str(sub) '/R' num2str(sub) '.mat'];
 
-motion = 1;
+motion = 2;
 trial = 1;
 disp(['M' num2str(motion) 'L1T' num2str(trial)]);
 emgFile = ['./Data/EMG/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '.mat'];
@@ -262,7 +262,7 @@ end
 %% step7 保存结果
 % 分解的原始结果
 % save(['./Data/experiment/ICdata/R' num2str(sub) '/R' num2str(sub) '_decompsRaw.mat'], 'decomps');
-save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_decompsRaw.mat'], 'decomps');
+% save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_decompsRaw.mat'], 'decomps');
 
 % 用于充当参考的MU结果
 decompsRef.MUAPs = arrayMUAP;
@@ -270,5 +270,5 @@ decompsRef.Pulses = pulsesRef;
 decompsRef.CoVs = CoV;
 
 % save(['./Data/experiment/ICdata/R' num2str(sub) '/R' num2str(sub) '_decompsRef.mat'], 'decompsRef');
-save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_decompsRef.mat'], 'decompsRef');
+% save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_decompsRef.mat'], 'decompsRef');
 % end
