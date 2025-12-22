@@ -18,7 +18,7 @@ saveEnergyRatio = [];
 saveCoV = [];
 saveMAD = [];
 
-fsampu = 2000;
+fsampu = 1000;
 % 计算放电串的MAD，大于25ms则去除
 % 计算估计源在6-14Hz内的能量占比，小于20%则去除
 [rn, cn] = size(DecompoResults.sources);
@@ -325,6 +325,17 @@ for mu = 1:numMU
 end
 
 %%
+data = importdata('./Data/EMG/24-06-21/iEMG_S1_M1_level1_trial1_24-06-21_UUS.eaf');
+muNum = max(data.data(:,2));
+pulsesRef = {};
+for mu = 1:muNum
+    tmp = round(data.data(find(data.data(:,2)==mu),1)'*fsampu);
+    tmp(tmp<=2*fsampu) = [];
+    tmp = tmp-2*fsampu;
+    pulsesRef{mu} = tmp;
+end
+
+%%
 load(['./Data/experiment/ICdata/R' sub '/pulsesRef.mat']);
 % 匹配容差为0~5ms
 winSize = [0, 5]/1000*fsampu;
@@ -377,7 +388,7 @@ matchResultRaw = array2table(matchResultRaw,'VariableNames',{'ref','decomp','RoA
 plotDecomps(decompoMUFiltered.Pulse, [], fsampu, 0, 0, []);
 % plotDecomps(decompoMURaw.Pulse, [], fsampu, 0, 0, []);
 plotDecomps(pulsesRef, [], fsampu, 0, 0, []);
-plotDecomps({pulsesRef{11}, decompoMUFiltered.Pulse{5}}, [], fsampu, 0, 0, []);
+plotDecomps({pulsesRef{3}, decompoMUFiltered.Pulse{4}}, [], fsampu, 0, 0, []);
 plotDecomps({pulsesRef{7},pulsesRef{6}}, [], fsampu, 0, 0, []);
 %%
 matchresult_time_raw = [];

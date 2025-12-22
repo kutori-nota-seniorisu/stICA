@@ -48,7 +48,8 @@ while true
         w_new = mean(Z.*log(cosh(w_old'*Z)), 2) - mean(tanh(w_old'*Z)).*w_old;
     elseif mode == 2
         % w_new = Z * 1/6 * (w_old' * Z).^3' / size(eS, 2) - mean(1/2*(w_old' * Z).^2) * w_old;
-        w_new = mean(Z.*1/2.*(w_old'*Z).^2, 2) - mean(w_old'*Z).*w_old;
+        w_new = mean(Z.*(1/6*(w_old'*Z).^3), 2) - mean(1/2*(w_old'*Z).^2).*w_old;
+        % w_new = mean(Z.*1/2.*(w_old'*Z).^2, 2) - mean(w_old'*Z).*w_old;
     end
     % 归一化处理
     w_new = w_new / norm(w_new);
