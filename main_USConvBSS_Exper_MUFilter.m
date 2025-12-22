@@ -48,7 +48,7 @@ for r = 1:rn
             CoVAll(r,c,mu) = tmpCoV(mu);
             ERAll(r,c,mu) = energyRatio;
 
-            if energyRatio >= 20 && MAD <= 100%120
+            if energyRatio >= 20 && MAD <= 25%120
                 disp(['r=' num2str(r) ',c=' num2str(c) ',mu=' num2str(mu) '保留！']);
                 saveMUs(end+1) = mu;
                 saveRows(end+1) = r;

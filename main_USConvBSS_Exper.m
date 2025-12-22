@@ -16,7 +16,7 @@ if isempty(gcp('nocreate'))
 end
 
 %% 读取数据并进行卷积盲源分离
-for sub = [16,17,18]
+for sub = [16]
 
 % for exFactor = 10:10:40
 %     for numCompo = 5:10:25
@@ -62,14 +62,14 @@ TVIDataFilter = TVIData;
 % end
 
 % 时间5-100Hz带通滤波
-% [Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
-% for r = 1:size(TVIDataFilter, 1)
-%     parfor c = 1:size(TVIDataFilter, 2)
-%         tmp = squeeze(TVIDataFilter(r, c, :));
-%         tmp = filtfilt(Be2, Ae2, tmp);
-%         TVIDataFilter(r, c, :) = tmp;
-%     end
-% end
+[Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
+for r = 1:size(TVIDataFilter, 1)
+    parfor c = 1:size(TVIDataFilter, 2)
+        tmp = squeeze(TVIDataFilter(r, c, :));
+        tmp = filtfilt(Be2, Ae2, tmp);
+        TVIDataFilter(r, c, :) = tmp;
+    end
+end
 
 % 对每一列降采样
 % parfor i = 1:size(TVIDataFilter, 3)
@@ -235,10 +235,10 @@ DecompoResults.twitches = reshape(tmpTwitches, numRows, numCols)';
 DecompoResults.decompo_pulses = reshape(tmpDecompoPulses, numRows, numCols)';
 DecompoResults.CoV = reshape(tmpCoV, numRows, numCols)';
 
-DecompoResults.B1 = reshape(tmpB1, numRows, numCols)';
-DecompoResults.B2 = reshape(tmpB2, numRows, numCols)';
+% DecompoResults.B1 = reshape(tmpB1, numRows, numCols)';
+% DecompoResults.B2 = reshape(tmpB2, numRows, numCols)';
 
-save(['./Data/experiment/ICdata/R' num2str(sub) '/USCBSS_C' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
+save(['./Data/experiment/ICdata/R' num2str(sub) '/USCBSS_C' num2str(numCompo) 'F.mat'], 'DecompoResults', '-v7.3');
 % save(['./Data/experiment/24-06-21/UUS-iEMG/S1M1L' num2str(level) 'T' num2str(trial) '_USCBSS_C' num2str(numCompo) '_' num2str(probe) '.mat'], 'DecompoResults', '-v7.3');
 % save(['./Data/experiment/25-07-04/M' num2str(motion) 'L1T' num2str(trial) '_USCBSS_R' num2str(exFactor) 'C' num2str(numCompo) '.mat'], 'DecompoResults', '-v7.3');
 disp('数据保存完成！');
