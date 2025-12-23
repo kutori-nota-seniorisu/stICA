@@ -189,8 +189,8 @@ for kkk = 1:(numRows*numCols)
 
         figure;
         tiledlayout('flow', 'TileSpacing', 'none', 'Padding', 'compact');
-        for iii = 1:min(100,size(B1{1,1}, 2))
-            www = B1{1,1}(:, iii);
+        for iii = 1:min(100,size(B1{i}, 2))
+            www = B1{i}(:, iii);
             sss = www' * Z;
             nexttile;
             plot(sss);
@@ -215,6 +215,15 @@ for kkk = 1:(numRows*numCols)
                 disp(['r' num2str(r) 'c' num2str(c) ' #' num2str(i) ' 二阶段迭代' num2str(countcount) '次']);
                 break;
             end
+        end
+
+        figure;
+        tiledlayout('flow', 'TileSpacing', 'none', 'Padding', 'compact');
+        for iii = 1:min(100,size(B2{i}, 2))
+            www = B2{i}(:, iii);
+            sss = www' * Z;
+            nexttile;
+            plot(sss);
         end
 
         % 存储结果

@@ -163,9 +163,8 @@ for sub = [16]
         disp('使用共轭梯度法');
         options = optimoptions('fminunc',...
             'MaxIterations',28800, ...
-            'MaxFunctionEvaluations',500000, ...'OptimalityTolerance',1e-6, ...
-            'Display','iter', ...'PlotFcn','optimplotfirstorderopt'
-            'PlotFcn','optimplotfval');
+            'MaxFunctionEvaluations',500000, ...'OptimalityTolerance',1e-6, ...,'PlotFcn','optimplotfval','PlotFcn','optimplotfirstorderopt'
+            'Display','iter');
         [Ws,fval,exitflag,output] = fminunc(fun,Ws,options);
         disp(output.message);
 
