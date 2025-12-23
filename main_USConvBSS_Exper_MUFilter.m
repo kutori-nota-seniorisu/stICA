@@ -484,14 +484,14 @@ for i = 1:size(TVIDataFilter, 3)
     TVIDataFilter(:, :, i) = tmp;
 end
 % 时间5-100Hz带通滤波
-% [Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
-% for r = 1:size(TVIDataFilter, 1)
-%     for c = 1:size(TVIDataFilter, 2)
-%         tmp = squeeze(TVIDataFilter(r, c, :));
-%         tmp = filtfilt(Be2, Ae2, tmp);
-%         TVIDataFilter(r, c, :) = tmp;
-%     end
-% end
+[Be2, Ae2] = butter(4, [5, 100]/fsampu*2);
+for r = 1:size(TVIDataFilter, 1)
+    for c = 1:size(TVIDataFilter, 2)
+        tmp = squeeze(TVIDataFilter(r, c, :));
+        tmp = filtfilt(Be2, Ae2, tmp);
+        TVIDataFilter(r, c, :) = tmp;
+    end
+end
 % 对每一列降采样
 for i = 1:size(TVIDataFilter, 3)
     tmp = TVIDataFilter(:, :, i);
@@ -547,9 +547,9 @@ t=tiledlayout('flow', 'TileSpacing', 'tight', 'Padding', 'compact');
 for iii = 1:size(Z,1)
     nexttile;
     plot(Z(iii,:));
-    xticks(0:2000:20000);
-    xticklabels(0:1:10);
-    kstest(Z(iii,:));
+    % xticks(0:2000:20000);
+    % xticklabels(0:1:10);
+    % kstest(Z(iii,:));
 end
 xlabel(t,'t (s)');
 ylabel(t, 'amplitude')
@@ -557,8 +557,8 @@ sgtitle('白化后的数据，方差占比70%')
 
 figure;
 tiledlayout('vertical', 'TileSpacing', 'none', 'Padding', 'compact');
-for iii = 1:size(B1, 2)
-    www = B1(:, iii);
+for iii = 1:size(B1{1,1}, 2)
+    www = B1{1,1}(:, iii);
     sss = www' * Z;
     nexttile;
     plot(sss);
@@ -691,12 +691,12 @@ for r = 1:rn
         end
 
         set(gcf,'unit','normalized','position',[0,0,1,1]);
-        saveas(ax, ['./Results/ttt/r' num2str(r) 'c' num2str(c)], 'png');
+        saveas(ax, ['./Results/tttF/r' num2str(r) 'c' num2str(c)], 'png');
         close;
     end
 end
 
-%% 2s结果
+%% 绘制23*25个区域的估计源信号
 fsampu = 1000;
 [rn, cn] = size(DecompoResults.sources);
 for r = 1:rn
@@ -704,9 +704,9 @@ for r = 1:rn
         tmpPulses = DecompoResults.decompo_pulses{r, c};
         tmpSources = DecompoResults.sources{r, c};
         tmpTwitches = DecompoResults.twitches{r, c};
-        tmpCoV = DecompoResults.CoV{r, c};
 
         ax = figure;
+        tiledlayout('flow', 'TileSpacing', 'compact', 'Padding', 'compact');
         for mu = 1:length(tmpPulses)
             % 计算MAD，单位为ms
             MAD = mad(diff(tmpPulses{mu}/fsampu*1000));
@@ -720,26 +720,27 @@ for r = 1:rn
             energyTotal = trapz(freq(idxTotal), psd(idxTotal));
             energyRatio = energyInBand / energyTotal * 100;
 
-            subplot(10,5,mu+floor((mu-1)/5)*5);
+            nexttile;
+            % subplot(10,5,mu+floor((mu-1)/5)*5);
             plot(tmpTwitches(:,mu));
-            % xlim([4000,8000]);
-            % xticks(4000:1000:8000);
-            xticklabels(0:1:2);
+            xlim([4*fsampu,8*fsampu]);
+            xticks(4*fsampu:fsampu:8*fsampu);
+            xticklabels(4:1:8);
             xlabel('t/s'); ylabel('amplitude');
             title(['twitch mu=' num2str(mu)])
 
-            subplot(10,5,mu+ceil(mu/5)*5);
+            nexttile;
+            % subplot(10,5,mu+ceil(mu/5)*5);
             plot(tmpSources(:,mu));
-            % xlim([4000,8000]);
-            % xticks(4000:1000:8000);
-            xticklabels(0:1:2);
+            xlim([4*fsampu,8*fsampu]);
+            xticks(4*fsampu:fsampu:8*fsampu);
+            xticklabels(4:1:8);
             xlabel('t/s'); ylabel('amplitude');
             title(['source mu=' num2str(mu) '，MAD=' num2str(MAD) ',ER=' num2str(energyRatio) '%']);
         end
 
         set(gcf,'unit','normalized','position',[0,0,1,1]);
-        saveas(ax, ['./Results/L1T1P1_3~5s/r' num2str(r) 'c' num2str(c)], 'png');
-        % saveas(ax, ['./Results/R' sub '_LowPass/r' num2str(r) 'c' num2str(c)], 'png');
+        saveas(ax, ['./Results/tttF/r' num2str(r) 'c' num2str(c)], 'png');
         close;
     end
 end

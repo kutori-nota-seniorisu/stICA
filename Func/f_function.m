@@ -1,11 +1,11 @@
 function [f, g] = f_function(Ws,U_hat,V_hat,params)
 
-Ws = reshape(Ws,params.k,params.k); %~ 如果采用粒子群优化算法需要用到
+Ws = reshape(Ws,params.k,params.k); % 如果采用粒子群优化算法需要用到
 Wt = inv(Ws');
 
 % 计算时间熵
 % if params.NMFt
-    %~ 计算时间熵，无分布区别，采用sech2函数，不带偏度的单一分布概率密度函数
+    % 计算时间熵，无分布区别，采用sech2函数，不带偏度的单一分布概率密度函数
     y_t = V_hat*Wt;
     p_t = sech(y_t).^2;
     L_t = sum(mean(log(p_t+eps)));
@@ -30,7 +30,7 @@ Wt = inv(Ws');
 % 计算空间熵
 if params.skew_stICA
     if params.MultiDistribution
-        %~ 带偏度的多分布概率密度函数
+        % 带偏度的多分布概率密度函数
         p = params.p;
         a = params.a;
         b = params.b;
@@ -47,7 +47,7 @@ if params.skew_stICA
         f_s = -(L_s + DET_s);
 
     else
-        %~ 带偏度的单一分布概率密度函数
+        % 带偏度的单一分布概率密度函数
         p = 1e3;
         a = 15;
         b = 16.5431;
@@ -62,7 +62,7 @@ if params.skew_stICA
         f_s = -(L_s + DET_s);
     end
 else
-    %~ 不带偏度的单一分布概率密度函数
+    % 不带偏度的单一分布概率密度函数
     y_s = U_hat*Ws;
     p_s = sech(y_s).^2;
     L_s = sum(mean(log(p_s+eps)));
@@ -70,7 +70,7 @@ else
     f_s = -(L_s + DET_s);
 end
 
-%～ 计算总熵
+% 计算总熵
 f = params.alpha*f_s + (1-params.alpha)*f_t;
 
 % 梯度
