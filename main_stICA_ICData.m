@@ -15,7 +15,7 @@ for sub = [16]
     toc;
     disp(['数据预处理用时' num2str(toc)]);
 
-    params.dataSize = [size(TVIdata,1) size(TVIdata,2) size(TVIdata,3)];
+    params.dataSize = [size(TVIData,1) size(TVIData,2) size(TVIData,3)];
 
     % 矩阵分解方法
     flag_decomp = 'SVD';
@@ -38,7 +38,7 @@ for sub = [16]
     disp('开始矩阵分解')
     if strcmp(flag_decomp,'SVD')
         % 数据预处理
-        TVI_tmp = stripmean(TVIdata,params.mode);% 时空组织速度图数据零均值化
+        TVI_tmp = stripmean(TVIData,params.mode);% 时空组织速度图数据零均值化
         TVI_data = reshape(TVI_tmp,params.dataSize(1)*params.dataSize(2),[]); % 三维数据重排为二维数据
 
         Ws0 = eye(params.k)+randn(params.k)*0.9; % Ws作为变量初始化
@@ -51,7 +51,7 @@ for sub = [16]
 
     elseif strcmp(flag_decomp,'NMF')
         % 数据预处理
-        TVI_tmp = stripmean(TVIdata,params.mode);% 时空组织速度图数据零均值化
+        TVI_tmp = stripmean(TVIData,params.mode);% 时空组织速度图数据零均值化
         TVI_data =reshape(TVI_tmp,params.dataSize(1)*params.dataSize(2),[]); % 三维数据重排为二维数据
 
         Ws0 = eye(params.k)+randn(params.k)*0.9; % Ws作为变量初始化
